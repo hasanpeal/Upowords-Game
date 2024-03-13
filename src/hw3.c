@@ -6,13 +6,13 @@
 
 #include "hw3.h" 
 
-#define DEBUG(...) fprintf(stderr, "[          ] [ DEBUG ] "); fprintf(stderr, __VA_ARGS__); fprintf(stderr, " -- %s()\n", __func__)
+#define DEBUG(...) fprintf(stderr, "[] [ DEBUG ] "); fprintf(stderr, __VA_ARGS__); fprintf(stderr, " -- %s()\n", __func__)
 
 GameState* initialize_game_state(const char *filename) {
     FILE *txtFile = fopen(filename, "r");
     if (!txtFile) 
     {
-        perror("Error opening file");
+        perror("File can't be opened");
         return NULL;
     }
 
@@ -34,10 +34,7 @@ GameState* initialize_game_state(const char *filename) {
     if (totalColumns > 0) 
     { 
         totalRows++; 
-        if (totalColumns > maxColumn) 
-        {
-            maxColumn = totalColumns; 
-        }
+        if (totalColumns > maxColumn) maxColumn = totalColumns; 
     }
 
     fseek(txtFile, 0, SEEK_SET);
@@ -101,7 +98,18 @@ GameState* undo_place_tiles(GameState *game) {
 }
 
 void free_game_state(GameState *game) {
-    (void)game;
+     if (game != NULL) {
+        for (int i = 0; i < game->row; i++) 
+        {
+            for (int j = 0; j < game->column; j++) 
+            {
+                free(game->grid[i][j]);
+            }
+            free(game->grid[i]);
+        }
+        free(game->grid);
+        free(game);
+    }
 }
 
 void save_game_state(GameState *game, const char *filename) {
