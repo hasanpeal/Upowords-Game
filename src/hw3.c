@@ -293,7 +293,6 @@ bool checkBoardWords(GameState *game) {
         }
     }
 
-    // Validate vertically
     for (int j = 0; j < game->column; ++j) {
         int wordLength2 = 0;
         for (int i = 0; i <= game->row; ++i) {
