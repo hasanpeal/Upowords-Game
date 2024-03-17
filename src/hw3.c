@@ -6,7 +6,7 @@
 
 #include "hw3.h" 
 
-#define DEBUG(...) fprintf(stderr, "[] [ DEBUG ] "); fprintf(stderr, __VA_ARGS__); fprintf(stderr, " -- %s()\n", __func__)
+//#define DEBUG(...) fprintf(stderr, "[] [ DEBUG ] "); fprintf(stderr, __VA_ARGS__); fprintf(stderr, " -- %s()\n", __func__)
 #define MAX_STACK_HEIGHT 6 
 
 char **valid = NULL;
@@ -227,8 +227,17 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
         if (direction == 'H' && col >= game->column) increaseHorizontally(game, col + 1);
         if (direction == 'V' && row >= game->row) increaseVertically(game, row + 1);
 
-        game->grid[row][col][0] = newTiles[i];
-        printf("Successfully placed '%c' at (%d, %d).\n", newTiles[i], row, col);
+        int currStackHeight = 0;
+        while (game->grid[row][col][currStackHeight] != '\0' && currStackHeight < MAX_STACK_HEIGHT - 1) {
+            currStackHeight++;
+        }
+        if (currStackHeight >= MAX_STACK_HEIGHT - 1) {
+            fprintf(stderr, "Cannot place '%c' at (%d, %d). Stack height limit reached.\n", newTiles[i], row, col);
+            continue;
+        }
+
+        game->grid[row][col][currStackHeight] = newTiles[i];
+        printf("Placed '%c' at (%d, %d). Stack height after placement: %d\n", newTiles[i], row, col, currStackHeight + 1);
 
         *num_tiles_placed += 1;
         if (direction == 'H') col++;
@@ -315,7 +324,37 @@ GameState* undo_place_tiles(GameState *game) {
 
 
 void save_game_state(GameState *game, const char *filename) {
-    (void)game;
-    (void)filename;
+    FILE *destination = fopen(filename, "w");
+    if(!destination) {
+        perror("Error opening file");
+        return;
+    }
+
+    for(int i = 0; i < game->row; i++) 
+    {
+        for(int k = 0; k < game->column; k++) 
+        {
+            int savingStackHeight = 0;
+                while (game->grid[i][k][savingStackHeight] != '\0' && savingStackHeight < MAX_STACK_HEIGHT) {
+                    savingStackHeight++;
+                }
+                if (savingStackHeight > 0) fprintf(destination, "%c", game->grid[i][k][savingStackHeight - 1]);
+                else fprintf(destination, ".");
+        }
+        fprintf(destination, "\n");
+    }
+
+    for (int i = 0; i < game->row; i++) {
+        for (int k = 0; k < game->column; k++) {
+            int savingStackHeight = 0;
+            while (game->grid[i][k][savingStackHeight] != '\0' && savingStackHeight < MAX_STACK_HEIGHT) {
+                savingStackHeight++;
+            }
+            fprintf(destination, "%d", savingStackHeight);
+        }
+        fprintf(destination, "\n");
+    }
+
+    fclose(destination);
 }
 
