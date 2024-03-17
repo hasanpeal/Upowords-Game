@@ -76,15 +76,16 @@ void free_game_state(GameState *game) {
 
 GameState* initialize_game_state(const char *filename) {
     printf("Loading game state from file: %s\n", filename);
-    FILE *txtFile = fopen(filename, "r");
-    if (!txtFile) {
+    FILE *f;
+    f = fopen(filename, "r");
+    if (!f) {
         perror("Error opening file");
         return NULL;
     }
 
     int totalRows = 0, maxColumn = 0, totalColumns = 0;
     char ch;
-    while ((ch = fgetc(txtFile)) != EOF) {
+    while ((ch = fgetc(f)) != EOF) {
         totalColumns++;
         if (ch == '\n') {
             totalRows++;
@@ -99,7 +100,7 @@ GameState* initialize_game_state(const char *filename) {
         if (totalColumns > maxColumn) maxColumn = totalColumns;
     }
 
-    fseek(txtFile, 0, SEEK_SET);
+    fseek(f, 0, SEEK_SET);
 
     GameState *game = malloc(sizeof(GameState));
     game->isInitialized = 0; 
@@ -107,7 +108,7 @@ GameState* initialize_game_state(const char *filename) {
 
     if (!game) {
         perror("Malloc failed");
-        fclose(txtFile);
+        fclose(f);
         return NULL;
     }
 
@@ -124,7 +125,7 @@ GameState* initialize_game_state(const char *filename) {
     }
 
     int rows = 0, columns = 0;
-    while ((ch = fgetc(txtFile)) != EOF) {
+    while ((ch = fgetc(f)) != EOF) {
         if (ch == '\n') {
             rows++;
             columns = 0;
@@ -137,7 +138,7 @@ GameState* initialize_game_state(const char *filename) {
         }
     }
 
-    fclose(txtFile);
+    fclose(f);
     printf("Game state initialized.\n");
     return game;
 }
@@ -242,15 +243,7 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
 
     return game;
 }
-// void displayBoard(GameState *game) {
-//     printf("Current board state:\n");
-//     for (int i = 0; i < game->row; i++) {
-//         for (int j = 0; j < game->column; j++) {
-//         printf("%c", game->grid[i][j][0]);
-//     }
-//         printf("\n");
-//     }
-// }
+
 
 void displayBoard(GameState *game) {
     printf("Current board state:\n");
