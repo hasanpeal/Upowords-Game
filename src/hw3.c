@@ -358,7 +358,7 @@ void save_game_state(GameState *game, const char *filename) {
     }
 
     printf("\n");
-    fprintf(destination, "\n");
+    //fprintf(destination, "\n");
 
     
     // Print the stack heights
