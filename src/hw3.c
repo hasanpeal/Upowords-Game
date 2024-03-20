@@ -357,7 +357,6 @@ void save_game_state(GameState *game, const char *filename) {
         fprintf(destination, "\n");
     }
 
-    // Separating board state and stack heights with a newline for clarity in debug output
     printf("\n");
     fprintf(destination, "\n");
 
