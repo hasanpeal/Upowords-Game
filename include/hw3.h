@@ -11,12 +11,14 @@ typedef struct GameState {
     int column;
     int isInitialized;
     bool isFirstWordInitiated; 
+    bool validWordsLoaded;
+    
 } GameState;
 
 void initiatedCheck();
 int isWordValid(const char* word);
 void freeValidWords();
-void loadValidWords(const char* filename);
+void loadValidWords(const char* filename, GameState *game);
 void increaseHorizontally(GameState *game, int new_cols);
 void increaseVertically(GameState *game, int new_rows);
 void displayBoard(GameState *game);

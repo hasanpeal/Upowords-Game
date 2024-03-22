@@ -365,11 +365,9 @@ void save_game_state(GameState *game, const char *filename) {
 
     printf("\n");
     
-    // Print the stack heights
     for (int i = 0; i < game->row; i++) {
         for (int k = 0; k < game->column; k++) {
             int stackHeight = 0;
-            // Check if the cell is actually empty
             if (game->grid[i][k][0] == '.') {
                 fprintf(destination, "0");
                 printf("Debug: Stack height at (%d,%d) is %d\n", i, k, stackHeight);
