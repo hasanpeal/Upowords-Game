@@ -12,7 +12,9 @@ typedef struct GameState {
     int isInitialized;
     bool isFirstWordInitiated; 
     bool validWordsLoaded;
-    
+    char ***prevGrid; 
+    int prevRow;      
+    int prevColumn;
 } GameState;
 
 void initiatedCheck();
@@ -29,4 +31,5 @@ GameState* undo_place_tiles(GameState *game);
 void free_game_state(GameState *game);
 void save_game_state(GameState *game, const char *filename);
 void freeGameMemory(GameState *game);
+char ***copyGrid(char ***grid, int rows, int columns);
 

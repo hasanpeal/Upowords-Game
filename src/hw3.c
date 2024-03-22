@@ -63,6 +63,18 @@ void initiatedCheck(GameState *game) {
     }
 }
 
+char ***copyGrid(char ***grid, int rows, int columns) {
+    char ***newGrid = malloc(rows * sizeof(char**));
+    for (int i = 0; i < rows; ++i) {
+        newGrid[i] = malloc(columns * sizeof(char*));
+        for (int j = 0; j < columns; ++j) {
+            newGrid[i][j] = calloc(MAX_STACK_HEIGHT, sizeof(char));
+            strcpy(newGrid[i][j], grid[i][j]);
+        }
+    }
+    return newGrid;
+}
+
 void free_game_state(GameState *game) {
     if (game != NULL) {
         for (int i = 0; i < game->row; i++) {
@@ -191,6 +203,11 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
         return NULL;
     }
 
+    if (row < 0 || col < 0 || row >= game->row || col >= game->column) {
+        fprintf(stderr, "Initial placement position is out of bounds.\n");
+        return game; 
+    }
+
     if (!game->isInitialized) {
         initiatedCheck(game); 
         game->isInitialized = 1;
@@ -221,26 +238,29 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
         game->isFirstWordInitiated = true; 
     }
 
+    game->prevRow = game->row;
+    game->prevColumn = game->column;
+    game->prevGrid = copyGrid(game->grid, game->row, game->column);
+
     *num_tiles_placed = 0;
-    for (int i = 0; newTiles[i] != '\0'; i++) {
-        printf("Debug: Placing tile '%c' at row %d, col %d\n", newTiles[i], row, col);
+    for (size_t i = 0; newTiles[i] != '\0'; i++) {
+        printf("Placing tiles: \"%s\" at Row: %d, Col: %d, Direction: %c\n", tiles, row, col, direction);
+        if (direction == 'H' && col >= game->column) increaseHorizontally(game, col + 1);
+        if (direction == 'V' && row >= game->row) increaseVertically(game, row + 1);
+
         if (newTiles[i] == ' ') {
             if (direction == 'H') col++;
             else row++;
             continue;
         }
 
-        if (direction == 'H' && col >= game->column) increaseHorizontally(game, col + 1);
-        if (direction == 'V' && row >= game->row) increaseVertically(game, row + 1);
-
         int currStackHeight = 0;
         while (game->grid[row][col][currStackHeight] != '\0' && currStackHeight < MAX_STACK_HEIGHT) {
             currStackHeight++;
         }
-        
+
         if (game->grid[row][col][0] == '.') {
-            
-            currStackHeight = 0; 
+            currStackHeight = 0;
         }
 
         if (currStackHeight >= MAX_STACK_HEIGHT) {
@@ -249,20 +269,19 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
         }
 
         printf("Debug: Placing '%c' at stack height %d\n", newTiles[i], currStackHeight);
-        game->grid[row][col][currStackHeight] = newTiles[i]; // Place the tile
+        game->grid[row][col][currStackHeight] = newTiles[i];
         printf("Placed '%c' at (%d, %d). Stack height after placement: %d\n", newTiles[i], row, col, currStackHeight + 1);
-
-        *num_tiles_placed += 1;
+        (*num_tiles_placed)++;
         if (direction == 'H') col++;
         else row++;
         printf("Debug: Tile '%c' placed. New stack height: %d\n", newTiles[i], currStackHeight + 1);
-    
     }
 
     free(newTiles);
 
     if (!checkBoardWords(game)) {
         printf("Board state invalid. Undo process in effect...\n");
+        undo_place_tiles(game);
     }
 
     
@@ -285,6 +304,29 @@ void displayBoard(GameState *game) {
     }
 }
 
+GameState* undo_place_tiles(GameState *game) {
+    if (!game || !game->prevGrid) return game; // Nothing to undo
+
+    // Free current grid
+    for (int i = 0; i < game->row; i++) {
+        for (int j = 0; j < game->column; j++) {
+            free(game->grid[i][j]);
+        }
+        free(game->grid[i]);
+    }
+    free(game->grid);
+
+    // Restore previous grid
+    game->grid = game->prevGrid;
+    game->row = game->prevRow;
+    game->column = game->prevColumn;
+
+    // Nullify prevGrid to prevent double-freeing
+    game->prevGrid = NULL;
+
+    printf("Undo successful. Board reverted to previous state.\n");
+    return game;
+}
 
 bool checkBoardWords(GameState *game) {
     char *wordBuffer = malloc((game->row > game->column ? game->row : game->column) + 1);
@@ -333,10 +375,6 @@ bool checkBoardWords(GameState *game) {
     return true;
 }
 
-GameState* undo_place_tiles(GameState *game) {
-    (void)game;
-    return NULL;
-}
 
 void save_game_state(GameState *game, const char *filename) {
     FILE *destination = fopen(filename, "w");
