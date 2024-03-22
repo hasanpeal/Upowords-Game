@@ -72,7 +72,7 @@ void free_game_state(GameState *game) {
             free(game->grid[i]);
         }
         free(game->grid);
-        if (game->validWordsLoaded) {
+        if ( game->validWordsLoaded ) {
             freeValidWords(game);
         }
         free(game);
