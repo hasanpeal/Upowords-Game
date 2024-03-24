@@ -121,9 +121,6 @@ GameState* initialize_game_state(const char *filename) {
     fseek(f, 0, SEEK_SET);
 
     GameState *game = malloc(sizeof(GameState));
-    game->isInitialized = 0; 
-    game->isFirstWordInitiated = false;
-
     if (!game) {
         perror("Malloc failed");
         fclose(f);
@@ -132,12 +129,50 @@ GameState* initialize_game_state(const char *filename) {
 
     game->row = totalRows;
     game->column = maxColumn;
+    game->isInitialized = 0;
+    game->isFirstWordInitiated = false;
+    game->validWordsLoaded = false;
+    game->prevGrid = NULL; // Ensure this is NULL to start
+    game->prevRow = 0; // Initialize to 0
+    game->prevColumn = 0; // Initialize to 0
 
     game->grid = malloc(game->row * sizeof(char**));
+    if (game->grid == NULL) {
+        perror("Failed to allocate memory for the game grid");
+        free(game);
+        fclose(f);
+        return NULL;
+    }
+
     for (int i = 0; i < game->row; ++i) {
         game->grid[i] = malloc(game->column * sizeof(char*));
+        if (game->grid[i] == NULL) {
+            perror("Failed to allocate memory for grid row");
+            // Free previously allocated memory
+            while (i-- > 0) {
+                free(game->grid[i]);
+            }
+            free(game->grid);
+            free(game);
+            fclose(f);
+            return NULL;
+        }
         for (int j = 0; j < game->column; ++j) {
             game->grid[i][j] = calloc(MAX_STACK_HEIGHT, sizeof(char));
+            if (game->grid[i][j] == NULL) {
+                perror("Failed to allocate memory for grid cell");
+                // Free previously allocated memory
+                for (int k = 0; k <= i; k++) {
+                    while (j-- > 0) {
+                        free(game->grid[i][j]);
+                    }
+                    free(game->grid[k]);
+                }
+                free(game->grid);
+                free(game);
+                fclose(f);
+                return NULL;
+            }
             strcpy(game->grid[i][j], ".");
         }
     }
@@ -160,6 +195,7 @@ GameState* initialize_game_state(const char *filename) {
     //printf("Game state initialized.\n");
     return game;
 }
+
 
 void increaseHorizontally(GameState *game, int new_cols) {
     //printf("Expanding horizontally. Current columns: %d, New columns: %d\n", game->column, new_cols);
@@ -406,7 +442,7 @@ GameState* undo_place_tiles(GameState *game) {
     game->prevRow = 0;
     game->prevColumn = 0;
 
-    printf("Undo successful. Board reverted to previous state.\n");
+    //printf("Undo successful. Board reverted to previous state.\n");
     return game;
 }
 void save_game_state(GameState *game, const char *filename) {
