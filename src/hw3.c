@@ -342,7 +342,7 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
 
     if (!checkBoardWords(game)) {
         //printf("Board state invalid. Undo process in effect...\n");
-        undo_place_tiles(game);
+        //undo_place_tiles(game);
     }
 
     
