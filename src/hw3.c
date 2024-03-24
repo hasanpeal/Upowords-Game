@@ -11,6 +11,7 @@
 
 char **valid = NULL;
 int validTotal = 0;
+
 void loadValidWords(const char* filename, GameState *game) {
     //printf("Initiating all valid words from: %s\n", filename);
     FILE *file = fopen(filename, "r");
@@ -47,6 +48,18 @@ int isWordValid(const char* word) {
     return 0; 
 }
 
+char ***copyGrid(char ***grid, int rows, int columns) {
+    char ***newGrid = malloc(rows * sizeof(char**));
+    for (int i = 0; i < rows; ++i) {
+        newGrid[i] = malloc(columns * sizeof(char*));
+        for (int j = 0; j < columns; ++j) {
+            newGrid[i][j] = calloc(MAX_STACK_HEIGHT, sizeof(char));
+            strcpy(newGrid[i][j], grid[i][j]);
+        }
+    }
+    return newGrid;
+}
+
 void freeValidWords(GameState *game) {
     for (int i = 0; i < validTotal; i++) free(valid[i]);
     free(valid);
@@ -63,18 +76,6 @@ void initiatedCheck(GameState *game) {
     }
 }
 
-char ***copyGrid(char ***grid, int rows, int columns) {
-    char ***newGrid = malloc(rows * sizeof(char**));
-    for (int i = 0; i < rows; ++i) {
-        newGrid[i] = malloc(columns * sizeof(char*));
-        for (int j = 0; j < columns; ++j) {
-            newGrid[i][j] = calloc(MAX_STACK_HEIGHT, sizeof(char));
-            strcpy(newGrid[i][j], grid[i][j]);
-        }
-    }
-    return newGrid;
-}
-
 void free_game_state(GameState *game) {
     if (game != NULL) {
         for (int i = 0; i < game->row; i++) {
@@ -84,7 +85,7 @@ void free_game_state(GameState *game) {
             free(game->grid[i]);
         }
         free(game->grid);
-        if ( game->validWordsLoaded ) {
+        if (game->validWordsLoaded) {
             freeValidWords(game);
         }
         free(game);
@@ -161,7 +162,7 @@ GameState* initialize_game_state(const char *filename) {
 }
 
 void increaseHorizontally(GameState *game, int new_cols) {
-    //printf("Starting expanding board horizontally to %d columns.\n", new_cols);
+    //printf("Expanding horizontally. Current columns: %d, New columns: %d\n", game->column, new_cols);
     for (int i = 0; i < game->row; ++i) {
         char **newRow = realloc(game->grid[i], new_cols * sizeof(char *));
         if (newRow == NULL) {
@@ -175,7 +176,7 @@ void increaseHorizontally(GameState *game, int new_cols) {
     }
 }
     game->column = new_cols;
-    //printf("Board has been expanded horizontally.\n");
+    //printf("Expansion complete. New column count: %d\n", game->column);
 }
 
 void increaseVertically(GameState *game, int new_rows) {
@@ -278,6 +279,8 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
     }
 
     free(newTiles);
+    //printf("Gamestate before board state invalid check");
+    //displayBoard(game);
 
     if (!checkBoardWords(game)) {
         //printf("Board state invalid. Undo process in effect...\n");
@@ -304,26 +307,6 @@ void displayBoard(GameState *game) {
     }
 }
 
-GameState* undo_place_tiles(GameState *game) {
-    if (!game || !game->prevGrid) return game; 
-
-    for (int i = 0; i < game->row; i++) {
-        for (int j = 0; j < game->column; j++) {
-            free(game->grid[i][j]);
-        }
-        free(game->grid[i]);
-    }
-    free(game->grid);
-
-    game->grid = game->prevGrid;
-    game->row = game->prevRow;
-    game->column = game->prevColumn;
-    game->prevGrid = NULL;
-
-    //printf("Undo successful. Board reverted to previous state.\n");
-    return game;
-}
-
 bool checkBoardWords(GameState *game) {
     char *wordBuffer = malloc((game->row > game->column ? game->row : game->column) + 1);
     if (!wordBuffer) {
@@ -343,7 +326,7 @@ bool checkBoardWords(GameState *game) {
                 if (wordLength > 1) {
                     wordBuffer[wordLength] = '\0';
                     if (!isWordValid(wordBuffer)) {
-                        printf("Invalid word has been found: %s\n", wordBuffer);
+                        //printf("Invalid word has been found: %s\n", wordBuffer);
                         free(wordBuffer);
                         return false;
                     }
@@ -365,7 +348,7 @@ bool checkBoardWords(GameState *game) {
                 if (wordLength > 1) {
                     wordBuffer[wordLength] = '\0';
                     if (!isWordValid(wordBuffer)) {
-                        printf("Invalid word found: %s\n", wordBuffer);
+                        //printf("Invalid word found: %s\n", wordBuffer);
                         free(wordBuffer);
                         return false;
                     }
@@ -379,6 +362,30 @@ bool checkBoardWords(GameState *game) {
     return true;
 }
 
+
+GameState* undo_place_tiles(GameState *game) {
+    if (!game || !game->prevGrid) return game; // Nothing to undo
+
+    // Free current grid
+    for (int i = 0; i < game->row; i++) {
+        for (int j = 0; j < game->column; j++) {
+            free(game->grid[i][j]);
+        }
+        free(game->grid[i]);
+    }
+    free(game->grid);
+
+    // Restore previous grid
+    game->grid = game->prevGrid;
+    game->row = game->prevRow;
+    game->column = game->prevColumn;
+
+    // Nullify prevGrid to prevent double-freeing
+    game->prevGrid = NULL;
+
+    //printf("Undo successful. Board reverted to previous state.\n");
+    return game;
+}
 
 void save_game_state(GameState *game, const char *filename) {
     FILE *destination = fopen(filename, "w");
@@ -406,10 +413,14 @@ void save_game_state(GameState *game, const char *filename) {
     }
 
     printf("\n");
+    //fprintf(destination, "\n");
+
     
+    // Print the stack heights
     for (int i = 0; i < game->row; i++) {
         for (int k = 0; k < game->column; k++) {
             int stackHeight = 0;
+            // Check if the cell is actually empty
             if (game->grid[i][k][0] == '.') {
                 fprintf(destination, "0");
                 //printf("Debug: Stack height at (%d,%d) is %d\n", i, k, stackHeight);
