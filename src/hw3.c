@@ -6,14 +6,14 @@
 
 #include "hw3.h" 
 
-#define DEBUG(...) fprintf(stderr, "[] [ DEBUG ] "); fprintf(stderr, __VA_ARGS__); fprintf(stderr, " -- %s()\n", __func__)
+//#define DEBUG(...) fprintf(stderr, "[] [ DEBUG ] "); fprintf(stderr, __VA_ARGS__); fprintf(stderr, " -- %s()\n", __func__)
 #define MAX_STACK_HEIGHT 6 
 
 char **valid = NULL;
 int validTotal = 0;
 
 void loadValidWords(const char* filename, GameState *game) {
-    printf("Initiating all valid words from: %s\n", filename);
+    //printf("Initiating all valid words from: %s\n", filename);
     FILE *file = fopen(filename, "r");
     if (!file) {
         perror("Failed to open the words file");
@@ -37,7 +37,7 @@ void loadValidWords(const char* filename, GameState *game) {
     }
     free(currWord); 
     fclose(file);
-    printf("Loaded %d valid words.\n", validTotal);
+    //printf("Loaded %d valid words.\n", validTotal);
     game->validWordsLoaded = true;
 }
 
@@ -93,7 +93,7 @@ void free_game_state(GameState *game) {
 }
 
 GameState* initialize_game_state(const char *filename) {
-    printf("Loading game state from file: %s\n", filename);
+    //printf("Loading game state from file: %s\n", filename);
     FILE *f;
     f = fopen(filename, "r");
     if (!f) {
@@ -121,6 +121,9 @@ GameState* initialize_game_state(const char *filename) {
     fseek(f, 0, SEEK_SET);
 
     GameState *game = malloc(sizeof(GameState));
+    game->isInitialized = 0; 
+    game->isFirstWordInitiated = false;
+
     if (!game) {
         perror("Malloc failed");
         fclose(f);
@@ -129,50 +132,12 @@ GameState* initialize_game_state(const char *filename) {
 
     game->row = totalRows;
     game->column = maxColumn;
-    game->isInitialized = 0;
-    game->isFirstWordInitiated = false;
-    game->validWordsLoaded = false;
-    game->prevGrid = NULL; // Ensure this is NULL to start
-    game->prevRow = 0; // Initialize to 0
-    game->prevColumn = 0; // Initialize to 0
 
     game->grid = malloc(game->row * sizeof(char**));
-    if (game->grid == NULL) {
-        perror("Failed to allocate memory for the game grid");
-        free(game);
-        fclose(f);
-        return NULL;
-    }
-
     for (int i = 0; i < game->row; ++i) {
         game->grid[i] = malloc(game->column * sizeof(char*));
-        if (game->grid[i] == NULL) {
-            perror("Failed to allocate memory for grid row");
-            // Free previously allocated memory
-            while (i-- > 0) {
-                free(game->grid[i]);
-            }
-            free(game->grid);
-            free(game);
-            fclose(f);
-            return NULL;
-        }
         for (int j = 0; j < game->column; ++j) {
             game->grid[i][j] = calloc(MAX_STACK_HEIGHT, sizeof(char));
-            if (game->grid[i][j] == NULL) {
-                perror("Failed to allocate memory for grid cell");
-                // Free previously allocated memory
-                for (int k = 0; k <= i; k++) {
-                    while (j-- > 0) {
-                        free(game->grid[i][j]);
-                    }
-                    free(game->grid[k]);
-                }
-                free(game->grid);
-                free(game);
-                fclose(f);
-                return NULL;
-            }
             strcpy(game->grid[i][j], ".");
         }
     }
@@ -192,13 +157,12 @@ GameState* initialize_game_state(const char *filename) {
     }
 
     fclose(f);
-    printf("Game state initialized.\n");
+    //printf("Game state initialized.\n");
     return game;
 }
 
-
 void increaseHorizontally(GameState *game, int new_cols) {
-    printf("Expanding horizontally. Current columns: %d, New columns: %d\n", game->column, new_cols);
+    //printf("Expanding horizontally. Current columns: %d, New columns: %d\n", game->column, new_cols);
     for (int i = 0; i < game->row; ++i) {
         char **newRow = realloc(game->grid[i], new_cols * sizeof(char *));
         if (newRow == NULL) {
@@ -212,11 +176,11 @@ void increaseHorizontally(GameState *game, int new_cols) {
     }
 }
     game->column = new_cols;
-    printf("Expansion complete. New column count: %d\n", game->column);
+    //printf("Expansion complete. New column count: %d\n", game->column);
 }
 
 void increaseVertically(GameState *game, int new_rows) {
-    printf("Starting expanding board vertically to %d rows.\n", new_rows);
+    //printf("Starting expanding board vertically to %d rows.\n", new_rows);
     char ***newGrid = realloc(game->grid, new_rows * sizeof(char **));
     if (newGrid == NULL) {
         perror("Failed to expand board vertically");
@@ -231,7 +195,7 @@ void increaseVertically(GameState *game, int new_rows) {
         }
     }
     game->row = new_rows;
-    printf("Board has been expanded vertically.\n");
+    //printf("Board has been expanded vertically.\n");
 }
 
 GameState* place_tiles(GameState *game, int row, int col, char direction, const char *tiles, int *num_tiles_placed) {
@@ -265,45 +229,23 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
         newTiles[i] = toupper(tiles[i]);
     }
     newTiles[strlen(tiles)] = '\0';
-    
-    bool checkEmptyBoard = true;
-    for (int i = 0; i < game->row && checkEmptyBoard; i++) {
-        for (int j = 0; j < game->column; j++) {
-            if (game->grid[i][j][0] != '.') {
-                checkEmptyBoard = false;
-                break;
-            }
-        }
-    }
 
-    if (!game->isFirstWordInitiated && checkEmptyBoard) {
+    if (!game->isFirstWordInitiated) {
         if (strlen(newTiles) < 2) {
             fprintf(stderr, "First word must be minimum two letters long!!\n");
             free(newTiles);
             return game;
         }
         game->isFirstWordInitiated = true; 
-    } else if (!game->isFirstWordInitiated) game->isFirstWordInitiated = true;
+    }
 
     game->prevRow = game->row;
     game->prevColumn = game->column;
-
-    if (game->prevGrid != NULL) {
-    // Free the existing prevGrid memory here
-        for (int i = 0; i < game->prevRow; ++i) {
-            for (int j = 0; j < game->prevColumn; ++j) {
-                free(game->prevGrid[i][j]);
-            }
-            free(game->prevGrid[i]);
-        }
-        free(game->prevGrid);
-    }
-
     game->prevGrid = copyGrid(game->grid, game->row, game->column);
 
     *num_tiles_placed = 0;
     for (size_t i = 0; newTiles[i] != '\0'; i++) {
-        printf("Placing tiles: \"%s\" at Row: %d, Col: %d, Direction: %c\n", tiles, row, col, direction);
+        //printf("Placing tiles: \"%s\" at Row: %d, Col: %d, Direction: %c\n", tiles, row, col, direction);
         if (newTiles[i] == ' ') {
             if (direction == 'H') col++;
             else row++;
@@ -327,22 +269,22 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
             continue;
         }
 
-        printf("Debug: Placing '%c' at stack height %d\n", newTiles[i], currStackHeight);
+        //printf("Debug: Placing '%c' at stack height %d\n", newTiles[i], currStackHeight);
         game->grid[row][col][currStackHeight] = newTiles[i];
-        printf("Placed '%c' at (%d, %d). Stack height after placement: %d\n", newTiles[i], row, col, currStackHeight + 1);
+        //printf("Placed '%c' at (%d, %d). Stack height after placement: %d\n", newTiles[i], row, col, currStackHeight + 1);
         (*num_tiles_placed)++;
         if (direction == 'H') col++;
         else row++;
-        printf("Debug: Tile '%c' placed. New stack height: %d\n", newTiles[i], currStackHeight + 1);
+        //printf("Debug: Tile '%c' placed. New stack height: %d\n", newTiles[i], currStackHeight + 1);
     }
 
     free(newTiles);
-    printf("Gamestate before board state invalid check: \n");
-    displayBoard(game);
+    //printf("Gamestate before board state invalid check");
+    //displayBoard(game);
 
     if (!checkBoardWords(game)) {
         printf("Board state invalid. Undo process in effect...\n");
-        //undo_place_tiles(game);
+        undo_place_tiles(game);
     }
 
     
@@ -420,6 +362,7 @@ bool checkBoardWords(GameState *game) {
     return true;
 }
 
+
 GameState* undo_place_tiles(GameState *game) {
     if (!game || !game->prevGrid) return game; // Nothing to undo
 
@@ -439,12 +382,11 @@ GameState* undo_place_tiles(GameState *game) {
 
     // Nullify prevGrid to prevent double-freeing
     game->prevGrid = NULL;
-    game->prevRow = 0;
-    game->prevColumn = 0;
 
     //printf("Undo successful. Board reverted to previous state.\n");
     return game;
 }
+
 void save_game_state(GameState *game, const char *filename) {
     FILE *destination = fopen(filename, "w");
     if (!destination) {
@@ -461,10 +403,10 @@ void save_game_state(GameState *game, const char *filename) {
             }
             if (savingStackHeight > 0) {
                 fprintf(destination, "%c", game->grid[i][k][savingStackHeight - 1]);
-                printf("Debug: Writing '%c' at (%d,%d) with stack height %d\n", game->grid[i][k][savingStackHeight - 1], i, k, savingStackHeight);
+                //printf("Debug: Writing '%c' at (%d,%d) with stack height %d\n", game->grid[i][k][savingStackHeight - 1], i, k, savingStackHeight);
             } else {
                 fprintf(destination, ".");
-                printf("Debug: Writing '.' at (%d,%d) as it's empty\n", i, k);
+                //printf("Debug: Writing '.' at (%d,%d) as it's empty\n", i, k);
             }
         }
         fprintf(destination, "\n");
@@ -481,13 +423,13 @@ void save_game_state(GameState *game, const char *filename) {
             // Check if the cell is actually empty
             if (game->grid[i][k][0] == '.') {
                 fprintf(destination, "0");
-                printf("Debug: Stack height at (%d,%d) is %d\n", i, k, stackHeight);
+                //printf("Debug: Stack height at (%d,%d) is %d\n", i, k, stackHeight);
             } else {
                 while (game->grid[i][k][stackHeight] != '\0' && stackHeight < MAX_STACK_HEIGHT) {
                     stackHeight++;
                 }
                 fprintf(destination, "%d", stackHeight);
-                printf("Debug: Stack height at (%d,%d) is %d\n", i, k, stackHeight);
+                //printf("Debug: Stack height at (%d,%d) is %d\n", i, k, stackHeight);
             }
         }
         fprintf(destination, "\n");
