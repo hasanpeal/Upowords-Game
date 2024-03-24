@@ -313,7 +313,7 @@ bool checkBoardWords(GameState *game) {
         perror("Memory allocation for wordBuffer failed");
         return false;
     }
-
+    memset(wordBuffer, 0, (game->row > game->column ? game->row : game->column) + 1);
     // Check horizontally
     for (int i = 0; i < game->row; ++i) {
         int wordLength = 0;
