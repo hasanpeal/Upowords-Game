@@ -6,7 +6,7 @@
 
 #include "hw3.h" 
 
-//#define DEBUG(...) fprintf(stderr, "[] [ DEBUG ] "); fprintf(stderr, __VA_ARGS__); fprintf(stderr, " -- %s()\n", __func__)
+#define DEBUG(...) fprintf(stderr, "[] [ DEBUG ] "); fprintf(stderr, __VA_ARGS__); fprintf(stderr, " -- %s()\n", __func__)
 #define MAX_STACK_HEIGHT 6 
 
 char **valid = NULL;
@@ -229,18 +229,40 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
         newTiles[i] = toupper(tiles[i]);
     }
     newTiles[strlen(tiles)] = '\0';
+    
+    bool checkEmptyBoard = true;
+    for (int i = 0; i < game->row && checkEmptyBoard; i++) {
+        for (int j = 0; j < game->column; j++) {
+            if (game->grid[i][j][0] != '.') {
+                checkEmptyBoard = false;
+                break;
+            }
+        }
+    }
 
-    if (!game->isFirstWordInitiated) {
+    if (!game->isFirstWordInitiated && checkEmptyBoard) {
         if (strlen(newTiles) < 2) {
             fprintf(stderr, "First word must be minimum two letters long!!\n");
             free(newTiles);
             return game;
         }
         game->isFirstWordInitiated = true; 
-    }
+    } else if (!game->isFirstWordInitiated) game->isFirstWordInitiated = true;
 
     game->prevRow = game->row;
     game->prevColumn = game->column;
+
+    if (game->prevGrid != NULL) {
+    // Free the existing prevGrid memory here
+        for (int i = 0; i < game->prevRow; ++i) {
+            for (int j = 0; j < game->prevColumn; ++j) {
+                free(game->prevGrid[i][j]);
+            }
+            free(game->prevGrid[i]);
+        }
+        free(game->prevGrid);
+    }
+
     game->prevGrid = copyGrid(game->grid, game->row, game->column);
 
     *num_tiles_placed = 0;
@@ -362,7 +384,6 @@ bool checkBoardWords(GameState *game) {
     return true;
 }
 
-
 GameState* undo_place_tiles(GameState *game) {
     if (!game || !game->prevGrid) return game; // Nothing to undo
 
@@ -382,11 +403,12 @@ GameState* undo_place_tiles(GameState *game) {
 
     // Nullify prevGrid to prevent double-freeing
     game->prevGrid = NULL;
+    game->prevRow = 0;
+    game->prevColumn = 0;
 
-    //printf("Undo successful. Board reverted to previous state.\n");
+    printf("Undo successful. Board reverted to previous state.\n");
     return game;
 }
-
 void save_game_state(GameState *game, const char *filename) {
     FILE *destination = fopen(filename, "w");
     if (!destination) {
