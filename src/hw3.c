@@ -245,14 +245,14 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
     *num_tiles_placed = 0;
     for (size_t i = 0; newTiles[i] != '\0'; i++) {
         //printf("Placing tiles: \"%s\" at Row: %d, Col: %d, Direction: %c\n", tiles, row, col, direction);
-        if (direction == 'H' && col >= game->column) increaseHorizontally(game, col + 1);
-        if (direction == 'V' && row >= game->row) increaseVertically(game, row + 1);
-
         if (newTiles[i] == ' ') {
             if (direction == 'H') col++;
             else row++;
             continue;
         }
+
+        if (direction == 'H' && col >= game->column) increaseHorizontally(game, col + 1);
+        if (direction == 'V' && row >= game->row) increaseVertically(game, row + 1);
 
         int currStackHeight = 0;
         while (game->grid[row][col][currStackHeight] != '\0' && currStackHeight < MAX_STACK_HEIGHT) {
@@ -331,38 +331,46 @@ bool checkBoardWords(GameState *game) {
         return false;
     }
 
+    // Check horizontally
     for (int i = 0; i < game->row; ++i) {
-        int totalwordLength = 0;
+        int wordLength = 0;
         for (int j = 0; j <= game->column; ++j) {
-            if (j < game->column && isalpha(game->grid[i][j][0])) wordBuffer[totalwordLength++] = game->grid[i][j][0];
-            else {
-                if (totalwordLength > 1) {
-                    wordBuffer[totalwordLength] = '\0';
+            if (j < game->column && game->grid[i][j][0] != '.') {
+                int stackHeight = 0;
+                while (game->grid[i][j][stackHeight] != '\0' && stackHeight < MAX_STACK_HEIGHT) stackHeight++;
+                wordBuffer[wordLength++] = game->grid[i][j][stackHeight - 1]; // Take the top tile
+            } else {
+                if (wordLength > 1) {
+                    wordBuffer[wordLength] = '\0';
                     if (!isWordValid(wordBuffer)) {
                         printf("Invalid word has been found: %s\n", wordBuffer);
                         free(wordBuffer);
                         return false;
                     }
                 }
-                totalwordLength = 0;
+                wordLength = 0; // Reset for the next word
             }
         }
     }
 
+    // Check vertically
     for (int j = 0; j < game->column; ++j) {
-        int wordLength2 = 0;
+        int wordLength = 0;
         for (int i = 0; i <= game->row; ++i) {
-            if (i < game->row && isalpha(game->grid[i][j][0])) wordBuffer[wordLength2++] = game->grid[i][j][0];
-            else {
-                if (wordLength2 > 1) {
-                    wordBuffer[wordLength2] = '\0';
+            if (i < game->row && game->grid[i][j][0] != '.') {
+                int stackHeight = 0;
+                while (game->grid[i][j][stackHeight] != '\0' && stackHeight < MAX_STACK_HEIGHT) stackHeight++;
+                wordBuffer[wordLength++] = game->grid[i][j][stackHeight - 1]; // Take the top tile
+            } else {
+                if (wordLength > 1) {
+                    wordBuffer[wordLength] = '\0';
                     if (!isWordValid(wordBuffer)) {
                         printf("Invalid word found: %s\n", wordBuffer);
                         free(wordBuffer);
                         return false;
                     }
                 }
-                wordLength2 = 0;
+                wordLength = 0; // Reset for the next word
             }
         }
     }
