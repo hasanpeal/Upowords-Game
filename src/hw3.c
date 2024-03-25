@@ -35,6 +35,11 @@ void loadValidWords(const char* filename, GameState *game) {
         valid = temp;
         valid[validTotal++] = strdup(currWord);
     }
+    printf("Loaded %d valid words.\n", validTotal);
+    // Optionally print first and last words for verification
+    if (validTotal > 0) {
+        printf("First word: %s, Last word: %s\n", valid[0], valid[validTotal - 1]);
+    }
     free(currWord); 
     fclose(file);
     //printf("Loaded %d valid words.\n", validTotal);
