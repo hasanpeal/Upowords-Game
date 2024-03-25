@@ -43,8 +43,12 @@ void loadValidWords(const char* filename, GameState *game) {
 
 int isWordValid(const char* word) {
     for (int i = 0; i < validTotal; i++) {
-        if (strcmp(word, valid[i]) == 0) return 1; 
+        if (strcmp(word, valid[i]) == 0) {
+            printf("Word \"%s\" is valid.\n", word); // Diagnostic print
+            return 1; 
+        }
     }
+    printf("Word \"%s\" is invalid.\n", word); // Diagnostic print
     return 0; 
 }
 
