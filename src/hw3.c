@@ -12,6 +12,9 @@
 char **valid = NULL;
 int validTotal = 0;
 
+int isGameInitialized = 0;
+
+
 void loadValidWords(const char* filename, GameState *game) {
     //printf("Initiating all valid words from: %s\n", filename);
     FILE *file = fopen(filename, "r");
@@ -42,23 +45,22 @@ void loadValidWords(const char* filename, GameState *game) {
 }
 
 int isWordValid(const char* word) {
-    printf("Total words loaded: %d\n", validTotal);
-    if (validTotal > 0) {
-        printf("First word: %s\n", valid[0] ? valid[0] : "NULL");
-        printf("Last word: %s\n", valid[validTotal - 1] ? valid[validTotal - 1] : "NULL");
-        // Print a sample word if within bounds and not NULL
-        if (validTotal > 123) {
-            printf("Sample word: %s\n", valid[123] ? valid[123] : "NULL");
-        }
-    }
-    printf("Validating word: %s\n", word); // Debug print
+    //printf("Total words loaded: %d\n", validTotal);
+    // if (validTotal > 0) {
+    //     //printf("First word: %s\n", valid[0] ? valid[0] : "NULL");
+    //     //printf("Last word: %s\n", valid[validTotal - 1] ? valid[validTotal - 1] : "NULL");
+    //     // if (validTotal > 123) {
+    //     //     //printf("Sample word: %s\n", valid[123] ? valid[123] : "NULL");
+    //     // }
+    // }
+    //printf("Validating word: %s\n", word); // Debug print
     for (int i = 0; i < validTotal; i++) {
         if (valid[i] && strcmp(word, valid[i]) == 0) {
-            printf("Word found: %s\n", word);
+            //printf("Word found: %s\n", word);
             return 1;
         }
     }
-    printf("Word not found: %s\n", word); // Debug print for failure
+    //printf("Word not found: %s\n", word); // Debug print for failure
     return 0;
 }
 
@@ -84,7 +86,6 @@ void freeValidWords(GameState *game) {
 }
 
 void initiatedCheck(GameState *game) {
-    static int isGameInitialized = 0;
     if (!isGameInitialized) {
         loadValidWords("./tests/words.txt", game);
         isGameInitialized = 1;
@@ -105,6 +106,10 @@ void free_game_state(GameState *game) {
         }
         free(game);
     }
+
+    isGameInitialized = 0;
+
+    //game->isInitialized = false;
 }
 
 GameState* initialize_game_state(const char *filename) {
@@ -245,14 +250,31 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
     }
     newTiles[strlen(tiles)] = '\0';
 
-    if (!game->isFirstWordInitiated) {
+    // Determine if the board is empty
+    bool isEmptyBoard = true;
+    for (int i = 0; i < game->row && isEmptyBoard; i++) {
+        for (int j = 0; j < game->column; j++) {
+            if (game->grid[i][j][0] != '.') {
+                isEmptyBoard = false;
+                break;
+            }
+        }
+    }
+
+    // Check for first word conditions
+    if (!game->isFirstWordInitiated && isEmptyBoard) {
+        // If it's the first word and the board is empty, check the length of the tiles
         if (strlen(newTiles) < 2) {
             fprintf(stderr, "First word must be minimum two letters long!!\n");
             free(newTiles);
             return game;
         }
         game->isFirstWordInitiated = true; 
-    }
+    } else if (!game->isFirstWordInitiated) {
+        // If it's the first word but the board is not empty (i.e., loaded from a file)
+        game->isFirstWordInitiated = true;
+  }
+
 
     game->prevRow = game->row;
     game->prevColumn = game->column;
@@ -280,7 +302,7 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
         }
 
         if (currStackHeight >= MAX_STACK_HEIGHT) {
-            fprintf(stderr, "Cannot place '%c' at (%d, %d). Stack height limit reached.\n", newTiles[i], row, col);
+            //fprintf(stderr, "Cannot place '%c' at (%d, %d). Stack height limit reached.\n", newTiles[i], row, col);
             continue;
         }
 
@@ -294,11 +316,11 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
     }
 
     free(newTiles);
-    //printf("Gamestate before board state invalid check");
+    //printf("Gamestate before saving: \n");
     //displayBoard(game);
 
     if (!checkBoardWords(game)) {
-        printf("Board state invalid. Undo process in effect...\n");
+        //printf("Board state invalid. Undo process in effect...\n");
         undo_place_tiles(game);
     }
 
@@ -328,7 +350,9 @@ bool checkBoardWords(GameState *game) {
         perror("Memory allocation for wordBuffer failed");
         return false;
     }
+
     memset(wordBuffer, 0, (game->row > game->column ? game->row : game->column) + 1);
+
     // Check horizontally
     for (int i = 0; i < game->row; ++i) {
         int wordLength = 0;
@@ -452,4 +476,3 @@ void save_game_state(GameState *game, const char *filename) {
 
     fclose(destination);
 }
-
