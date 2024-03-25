@@ -476,3 +476,4 @@ void save_game_state(GameState *game, const char *filename) {
 
     fclose(destination);
 }
+
