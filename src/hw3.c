@@ -280,6 +280,30 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
     game->prevColumn = game->column;
     game->prevGrid = copyGrid(game->grid, game->row, game->column);
 
+    //Changes for overlap
+    bool isValidMove = false; 
+
+    for (size_t i = 0; i < strlen(newTiles) && !isValidMove; i++) {
+        int targetRow = row + (direction == 'V' ? i : 0);
+        int targetCol = col + (direction == 'H' ? i : 0);
+
+        if (targetRow >= game->row || targetCol >= game->column) {
+            // Increase board size as needed, handled elsewhere
+            continue;
+        }
+
+        if (game->grid[targetRow][targetCol][0] == '.' || game->grid[targetRow][targetCol][0] != newTiles[i]) {
+            // If the spot is empty or the new tile is different, it's a valid move
+            isValidMove = true;
+        }
+    }
+
+    if (!isValidMove) {
+        fprintf(stderr, "Invalid move: Cannot simply cover an existing word with identical tiles.\n");
+        free(newTiles); // Clean up before returning
+        return game; // Exit the function early
+    }
+
     *num_tiles_placed = 0;
     for (size_t i = 0; newTiles[i] != '\0'; i++) {
         //printf("Placing tiles: \"%s\" at Row: %d, Col: %d, Direction: %c\n", tiles, row, col, direction);
@@ -476,4 +500,5 @@ void save_game_state(GameState *game, const char *filename) {
 
     fclose(destination);
 }
+
 
