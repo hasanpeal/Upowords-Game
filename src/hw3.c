@@ -47,9 +47,15 @@ void loadValidWords(const char* filename, GameState *game) {
 }
 
 int isWordValid(const char* word) {
+    printf("Total words loaded: %d\n", validTotal);
+    printf("First word: %s\n", valid[0]);
+    printf("Last word: %s\n", valid[validTotal - 1]);
+    // Print a few random words
+    printf("Sample word: %s\n", valid[123]); // Ensure this index is within bounds
     printf("Validating word: %s\n", word); // Debug print
     for (int i = 0; i < validTotal; i++) {
         if (strcmp(word, valid[i]) == 0) {
+            printf("Word found: %s\n", word);
             return 1;
         }
     }
