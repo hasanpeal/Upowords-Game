@@ -60,12 +60,15 @@ char ***copyGrid(char ***grid, int rows, int columns) {
     return newGrid;
 }
 
-void freeValidWords(GameState *game) {
-    for (int i = 0; i < validTotal; i++) free(valid[i]);
-    free(valid);
-    valid = NULL;
-    validTotal = 0;
-    (void)game;
+void freeValidWords() {
+    if (valid != NULL) {
+        for (int i = 0; i < validTotal; i++) {
+            free(valid[i]); // Free each string
+        }
+        free(valid); // Free the array of pointers
+        valid = NULL; // Reset the pointer to NULL
+    }
+    validTotal = 0; // Reset the total count of valid words
 }
 
 void initiatedCheck(GameState *game) {
@@ -78,6 +81,7 @@ void initiatedCheck(GameState *game) {
 
 void free_game_state(GameState *game) {
     if (game != NULL) {
+        // Free the current game grid
         for (int i = 0; i < game->row; i++) {
             for (int j = 0; j < game->column; j++) {
                 free(game->grid[i][j]);
@@ -85,12 +89,38 @@ void free_game_state(GameState *game) {
             free(game->grid[i]);
         }
         free(game->grid);
-        if (game->validWordsLoaded) {
-            freeValidWords(game);
+        
+        // Free the previous game grid if it exists
+        if (game->prevGrid != NULL) {
+            for (int i = 0; i < game->prevRow; i++) {
+                for (int j = 0; j < game->prevColumn; j++) {
+                    free(game->prevGrid[i][j]);
+                }
+                free(game->prevGrid[i]);
+            }
+            free(game->prevGrid);
         }
+
+        // Reset GameState variables
+        game->row = 0;
+        game->column = 0;
+        game->isInitialized = 0;
+        game->isFirstWordInitiated = false;
+        game->validWordsLoaded = false;
+        game->prevGrid = NULL;
+        game->prevRow = 0;
+        game->prevColumn = 0;
+
+        // Free the game state itself
         free(game);
     }
+
+    // Reset global valid words list
+    freeValidWords(); // Assumes this properly frees and nullifies `valid`
+
+    // Reset any other global or static variables here as necessary
 }
+
 
 GameState* initialize_game_state(const char *filename) {
     //printf("Loading game state from file: %s\n", filename);
