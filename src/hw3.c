@@ -47,16 +47,16 @@ void loadValidWords(const char* filename, GameState *game) {
 }
 
 int isWordValid(const char* word) {
-    if (strcmp(word, "TOZEE") == 0) return 1;
+    printf("Validating word: %s\n", word); // Debug print
     for (int i = 0; i < validTotal; i++) {
         if (strcmp(word, valid[i]) == 0) {
-            printf("Word \"%s\" is valid.\n", word); // Diagnostic print
-            return 1; 
+            return 1;
         }
     }
-    printf("Word \"%s\" is invalid.\n", word); // Diagnostic print
-    return 0; 
+    printf("Word not found: %s\n", word); // Debug print for failure
+    return 0;
 }
+
 
 char ***copyGrid(char ***grid, int rows, int columns) {
     char ***newGrid = malloc(rows * sizeof(char**));
