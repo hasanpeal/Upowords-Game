@@ -35,11 +35,6 @@ void loadValidWords(const char* filename, GameState *game) {
         valid = temp;
         valid[validTotal++] = strdup(currWord);
     }
-    printf("Loaded %d valid words.\n", validTotal);
-    // Optionally print first and last words for verification
-    if (validTotal > 0) {
-        printf("First word: %s, Last word: %s\n", valid[0], valid[validTotal - 1]);
-    }
     free(currWord); 
     fclose(file);
     //printf("Loaded %d valid words.\n", validTotal);
@@ -48,13 +43,17 @@ void loadValidWords(const char* filename, GameState *game) {
 
 int isWordValid(const char* word) {
     printf("Total words loaded: %d\n", validTotal);
-    printf("First word: %s\n", valid[0]);
-    printf("Last word: %s\n", valid[validTotal - 1]);
-    // Print a few random words
-    printf("Sample word: %s\n", valid[123]); // Ensure this index is within bounds
+    if (validTotal > 0) {
+        printf("First word: %s\n", valid[0] ? valid[0] : "NULL");
+        printf("Last word: %s\n", valid[validTotal - 1] ? valid[validTotal - 1] : "NULL");
+        // Print a sample word if within bounds and not NULL
+        if (validTotal > 123) {
+            printf("Sample word: %s\n", valid[123] ? valid[123] : "NULL");
+        }
+    }
     printf("Validating word: %s\n", word); // Debug print
     for (int i = 0; i < validTotal; i++) {
-        if (strcmp(word, valid[i]) == 0) {
+        if (valid[i] && strcmp(word, valid[i]) == 0) {
             printf("Word found: %s\n", word);
             return 1;
         }
