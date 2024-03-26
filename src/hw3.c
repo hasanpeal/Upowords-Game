@@ -348,7 +348,7 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
         undo_place_tiles(game);
     }
 
-    
+    printf("Number of tiles placed: %d\n", *num_tiles_placed);
     return game;
 }
 
