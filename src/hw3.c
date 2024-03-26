@@ -299,7 +299,7 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
     }
 
     if (!isValidMove) {
-        fprintf(stderr, "Invalid move: Cannot simply cover an existing word with identical tiles.\n");
+        //fprintf(stderr, "Invalid move: Cannot simply cover an existing word with identical tiles.\n");
         free(newTiles); // Clean up before returning
         return game; // Exit the function early
     }
@@ -389,7 +389,7 @@ bool checkBoardWords(GameState *game) {
                 if (wordLength > 1) {
                     wordBuffer[wordLength] = '\0';
                     if (!isWordValid(wordBuffer)) {
-                        printf("Invalid word has been found: %s\n", wordBuffer);
+                        //printf("Invalid word has been found: %s\n", wordBuffer);
                         free(wordBuffer);
                         return false;
                     }
@@ -411,7 +411,7 @@ bool checkBoardWords(GameState *game) {
                 if (wordLength > 1) {
                     wordBuffer[wordLength] = '\0';
                     if (!isWordValid(wordBuffer)) {
-                        printf("Invalid word found: %s\n", wordBuffer);
+                        //printf("Invalid word found: %s\n", wordBuffer);
                         free(wordBuffer);
                         return false;
                     }
