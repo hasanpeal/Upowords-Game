@@ -214,6 +214,16 @@ void increaseVertically(GameState *game, int new_rows) {
     //printf("Board has been expanded vertically.\n");
 }
 
+bool isFullCover(GameState *game, int row, int col, char direction, const char *tiles) {
+    for (size_t i = 0; tiles[i] != '\0'; i++) {
+        int targetRow = row + (direction == 'V' ? i : 0);
+        int targetCol = col + (direction == 'H' ? i : 0);
+
+        if (targetRow >= game->row || targetCol >= game->column) return false;
+        if (game->grid[targetRow][targetCol][0] == '.' || tiles[i] == ' ') return false;
+    }
+    return true;
+}
 GameState* place_tiles(GameState *game, int row, int col, char direction, const char *tiles, int *num_tiles_placed) {
     if (game == NULL || game->grid == NULL) {
         fprintf(stderr, "GameState has not been initialized properly!!\n");
@@ -322,8 +332,8 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
 
     *num_tiles_placed = 0;
 
-    if (isInvalidMove) {
-        fprintf(stderr, "Invalid move: Cannot simply cover an existing word with identical tiles.\n");
+    if (isInvalidMove || isFullCover(game, row, col, direction, newTiles)) {
+        //fprintf(stderr, "Invalid move: Cannot simply cover an existing word with identical tiles.\n");
         free(newTiles); 
         //printf("Number of tiles placed: %d\n", *num_tiles_placed);
         return game; 
@@ -350,7 +360,7 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
         }
 
         if (currStackHeight >= MAX_STACK_HEIGHT) {
-            fprintf(stderr, "Cannot place '%c' at (%d, %d). Stack height limit reached.\n", newTiles[i], row, col);
+            //fprintf(stderr, "Cannot place '%c' at (%d, %d). Stack height limit reached.\n", newTiles[i], row, col);
             continue;
         }
 

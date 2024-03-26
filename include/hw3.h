@@ -18,6 +18,7 @@ typedef struct GameState {
 } GameState;
 
 void initiatedCheck();
+bool isFullCover(GameState *game, int row, int col, char direction, const char *tiles);
 int isWordValid(const char* word);
 void freeValidWords();
 void loadValidWords(const char* filename, GameState *game);
