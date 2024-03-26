@@ -298,13 +298,14 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
         }
     }
 
+    *num_tiles_placed = 0;
+
     if (!isValidMove) {
         //fprintf(stderr, "Invalid move: Cannot simply cover an existing word with identical tiles.\n");
         free(newTiles); // Clean up before returning
         return game; // Exit the function early
     }
 
-    *num_tiles_placed = 0;
     for (size_t i = 0; newTiles[i] != '\0'; i++) {
         //printf("Placing tiles: \"%s\" at Row: %d, Col: %d, Direction: %c\n", tiles, row, col, direction);
         if (newTiles[i] == ' ') {
@@ -346,9 +347,10 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
     if (!checkBoardWords(game)) {
         //printf("Board state invalid. Undo process in effect...\n");
         undo_place_tiles(game);
+        *num_tiles_placed = 0;
     }
 
-    printf("Number of tiles placed: %d\n", *num_tiles_placed);
+    
     return game;
 }
 
