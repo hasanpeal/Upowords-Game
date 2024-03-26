@@ -325,12 +325,12 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
     if (isInvalidMove) {
         fprintf(stderr, "Invalid move: Cannot simply cover an existing word with identical tiles.\n");
         free(newTiles); 
-        printf("Number of tiles placed: %d\n", *num_tiles_placed);
+        //printf("Number of tiles placed: %d\n", *num_tiles_placed);
         return game; 
     }
 
     for (size_t i = 0; newTiles[i] != '\0'; i++) {
-        printf("Placing tiles: \"%s\" at Row: %d, Col: %d, Direction: %c\n", tiles, row, col, direction);
+        //printf("Placing tiles: \"%s\" at Row: %d, Col: %d, Direction: %c\n", tiles, row, col, direction);
         if (newTiles[i] == ' ') {
             if (direction == 'H') col++;
             else row++;
@@ -354,26 +354,26 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
             continue;
         }
 
-        printf("Debug: Placing '%c' at stack height %d\n", newTiles[i], currStackHeight);
+        //printf("Debug: Placing '%c' at stack height %d\n", newTiles[i], currStackHeight);
         game->grid[row][col][currStackHeight] = newTiles[i];
-        printf("Placed '%c' at (%d, %d). Stack height after placement: %d\n", newTiles[i], row, col, currStackHeight + 1);
+        //printf("Placed '%c' at (%d, %d). Stack height after placement: %d\n", newTiles[i], row, col, currStackHeight + 1);
         (*num_tiles_placed)++;
         if (direction == 'H') col++;
         else row++;
-        printf("Debug: Tile '%c' placed. New stack height: %d\n", newTiles[i], currStackHeight + 1);
+        //printf("Debug: Tile '%c' placed. New stack height: %d\n", newTiles[i], currStackHeight + 1);
     }
 
     free(newTiles);
-    printf("Gamestate before saving: \n");
-    displayBoard(game);
+    //printf("Gamestate before saving: \n");
+    //displayBoard(game);
 
     if (!checkBoardWords(game)) {
-        printf("Board state invalid. Undo process in effect...\n");
+        //printf("Board state invalid. Undo process in effect...\n");
         undo_place_tiles(game);
         *num_tiles_placed = 0; 
     }
     
-    printf("Number of tiles placed: %d\n", *num_tiles_placed);
+    //printf("Number of tiles placed: %d\n", *num_tiles_placed);
     return game;
 }
 
