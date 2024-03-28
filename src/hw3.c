@@ -25,20 +25,33 @@ void loadValidWords(const char* filename, GameState *game) {
 
     char *currWord = NULL;
     size_t length = 0;
-    ssize_t readIt;
-    while ((readIt = getline(&currWord, &length, file)) != -1) {
-        currWord[strcspn(currWord, "\n")] = 0; 
-        for (int i = 0; currWord[i]; i++) currWord[i] = toupper((unsigned char)currWord[i]);
-        char **temp = realloc(valid, sizeof(char*) * (validTotal + 1));
-        if (temp == NULL) {
-            free(currWord);
-            perror("Failed to resize valid words array");
-            break;
+    ssize_t read;
+    int capacity = 100; // Initial capacity
+    valid = malloc(capacity * sizeof(char*));
+    if (!valid) {
+        perror("Failed to allocate memory for valid words");
+        fclose(file);
+        return;
+    }
+
+    while ((read = getline(&currWord, &length, file)) != -1) {
+        if (validTotal >= capacity) {
+            // Increase capacity: double it
+            capacity *= 2;
+            char **temp = realloc(valid, capacity * sizeof(char*));
+            if (!temp) {
+                perror("Failed to resize valid words array");
+                break;
+            }
+            valid = temp;
         }
-        valid = temp;
+
+        currWord[strcspn(currWord, "\n")] = 0; // Remove newline
+        for (size_t i = 0; currWord[i]; i++) currWord[i] = toupper((unsigned char)currWord[i]);
         valid[validTotal++] = strdup(currWord);
     }
-    free(currWord); 
+
+    free(currWord);
     fclose(file);
     //printf("Loaded %d valid words.\n", validTotal);
     game->validWordsLoaded = true;
@@ -353,7 +366,7 @@ if (currentCol >= game->column) {
     }
 
     if (coverCount >= existingTileCount && existingTileCount > 0) {
-        fprintf(stderr, "Cannot cover all tiles of an existing word.\n");
+        //fprintf(stderr, "Cannot cover all tiles of an existing word.\n");
         free(newTiles);
         game->column = game->prevColumn;
         game->row = game->prevRow;
@@ -401,7 +414,7 @@ if (currentCol >= game->column) {
 
         if (!interactsWithExistingTile) {
             // If no interaction with existing tiles, it's an invalid move (unless it's the first move on an empty board)
-            fprintf(stderr, "Invalid move: A word must interact with an existing tile.\n");
+            //fprintf(stderr, "Invalid move: A word must interact with an existing tile.\n");
             free(newTiles); // Remember to free allocated memory before returning
             game->column = game->prevColumn;
             game->row = game->prevRow;
@@ -412,7 +425,7 @@ if (currentCol >= game->column) {
     char *stateBefore = captureBoardState(game);
     
     for (size_t i = 0; newTiles[i] != '\0'; i++) {
-        printf("Placing tiles: \"%s\" at Row: %d, Col: %d, Direction: %c\n", tiles, row, col, direction);
+        //printf("Placing tiles: \"%s\" at Row: %d, Col: %d, Direction: %c\n", tiles, row, col, direction);
         if (newTiles[i] == ' ') {
             if (direction == 'H') col++;
             else row++;
@@ -432,18 +445,18 @@ if (currentCol >= game->column) {
         } 
 
         if (currStackHeight >= MAX_STACK_HEIGHT) {
-            fprintf(stderr, "Cannot place '%c' at (%d, %d). Stack height limit reached.\n", newTiles[i], row, col);
+            //fprintf(stderr, "Cannot place '%c' at (%d, %d). Stack height limit reached.\n", newTiles[i], row, col);
             free(newTiles);
             return game;
         }
 
-        printf("Debug: Placing '%c' at stack height %d\n", newTiles[i], currStackHeight);
+        //printf("Debug: Placing '%c' at stack height %d\n", newTiles[i], currStackHeight);
         game->grid[row][col][currStackHeight] = newTiles[i];
-        printf("Placed '%c' at (%d, %d). Stack height after placement: %d\n", newTiles[i], row, col, currStackHeight + 1);
+        //printf("Placed '%c' at (%d, %d). Stack height after placement: %d\n", newTiles[i], row, col, currStackHeight + 1);
         (*num_tiles_placed)++;
         if (direction == 'H') col++;
         else row++;
-        printf("Debug: Tile '%c' placed. New stack height: %d\n", newTiles[i], currStackHeight + 1);
+        //printf("Debug: Tile '%c' placed. New stack height: %d\n", newTiles[i], currStackHeight + 1);
     }
 
     char *stateAfter = captureBoardState(game);
@@ -452,21 +465,21 @@ if (currentCol >= game->column) {
     // displayBoard(game);
     
     if (!checkBoardWords(game)) {
-        printf("Board state invalid. Undo process in effect...\n");
+        //printf("Board state invalid. Undo process in effect...\n");
         undo_place_tiles(game);
         *num_tiles_placed = 0; 
     }
 
     if (compareBoardStates(stateBefore, stateAfter)) {
     // The board state hasn't changed, indicating an invalid move
-        fprintf(stderr, "Invalid move: No new word has been created. Undo process in effect...\n");
+        //fprintf(stderr, "Invalid move: No new word has been created. Undo process in effect...\n");
         undo_place_tiles(game);
         *num_tiles_placed = 0; 
     
     }
     free(stateBefore);
     free(stateAfter);
-    printf("Number of tiles placed: %d\n", *num_tiles_placed);
+    //printf("Number of tiles placed: %d\n", *num_tiles_placed);
     return game;
 }
 
