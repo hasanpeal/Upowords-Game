@@ -245,7 +245,6 @@ bool compareBoardStates(char *stateBefore, char *stateAfter) {
     return strcmp(stateBefore, stateAfter) == 0;
 }
 
-
 GameState* place_tiles(GameState *game, int row, int col, char direction, const char *tiles, int *num_tiles_placed) {
     if (game == NULL || game->grid == NULL) {
         fprintf(stderr, "GameState has not been initialized properly!!\n");
@@ -319,7 +318,10 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
 if (currentCol >= game->column) {
     increaseHorizontally(game, currentCol + 1); // Ensure the grid has enough columns
 }
+
             if (game->grid[currentRow][currentCol][0] != '.') {
+                //changes
+                
                 coverCount++;
             }
         }
@@ -337,7 +339,7 @@ if (currentCol >= game->column) {
     }
 
     if (coverCount >= existingTileCount && existingTileCount > 0) {
-        //fprintf(stderr, "Cannot cover all tiles of an existing word.\n");
+        fprintf(stderr, "Cannot cover all tiles of an existing word.\n");
         free(newTiles);
         return game;
     }
@@ -345,38 +347,50 @@ if (currentCol >= game->column) {
 
 
 
-
-
-
     bool interactsWithExistingTile = false;
-
     if (!isEmptyBoard) { // Skip this check if it's the first placement
         for (size_t i = 0; i < strlen(tiles); ++i) {
+            if (tiles[i] == ' ') continue; // Skip spaces in the tiles string
+
             int currentRow = row + (direction == 'V' ? i : 0);
             int currentCol = col + (direction == 'H' ? i : 0);
 
-            // Ensure the grid is properly expanded (your existing logic here)
 
-            // Check if placing a tile next to or on top of an existing tile
-            if ((direction == 'H' && (currentCol < game->column - 1 && game->grid[row][currentCol + 1][0] != '.')) ||
-                (direction == 'V' && (currentRow < game->row - 1 && game->grid[currentRow + 1][col][0] != '.')) ||
-                game->grid[currentRow][currentCol][0] != '.') {
+            // Check interaction in all relevant directions
+            bool leftOrAboveExists = (direction == 'H' && currentCol > 0 && game->grid[currentRow][currentCol - 1][0] != '.') ||
+                                     (direction == 'V' && currentRow > 0 && game->grid[currentRow - 1][currentCol][0] != '.');
+
+            bool rightOrBelowExists = (direction == 'H' && currentCol < game->column - 1 && game->grid[currentRow][currentCol + 1][0] != '.') ||
+                                      (direction == 'V' && currentRow < game->row - 1 && game->grid[currentRow + 1][currentCol][0] != '.');
+
+            bool onTopExists = game->grid[currentRow][currentCol][0] != '.';
+
+            bool verticalNeighborExists = direction == 'H' &&
+                                          ((currentRow > 0 && game->grid[currentRow - 1][currentCol][0] != '.') ||
+                                           (currentRow < game->row - 1 && game->grid[currentRow + 1][currentCol][0] != '.'));
+
+            bool horizontalNeighborExists = direction == 'V' &&
+                                            ((currentCol > 0 && game->grid[currentRow][currentCol - 1][0] != '.') ||
+                                             (currentCol < game->column - 1 && game->grid[currentRow][currentCol + 1][0] != '.'));
+
+            if (leftOrAboveExists || rightOrBelowExists || onTopExists || verticalNeighborExists || horizontalNeighborExists) {
                 interactsWithExistingTile = true;
                 break; // Found an interaction, no need to check further
             }
         }
 
+
         if (!interactsWithExistingTile) {
             // If no interaction with existing tiles, it's an invalid move (unless it's the first move on an empty board)
             fprintf(stderr, "Invalid move: A word must interact with an existing tile.\n");
-            free(newTiles);
+            free(newTiles); // Remember to free allocated memory before returning
             return game;
         }
     }
     char *stateBefore = captureBoardState(game);
-
+    
     for (size_t i = 0; newTiles[i] != '\0'; i++) {
-        //printf("Placing tiles: \"%s\" at Row: %d, Col: %d, Direction: %c\n", tiles, row, col, direction);
+        printf("Placing tiles: \"%s\" at Row: %d, Col: %d, Direction: %c\n", tiles, row, col, direction);
         if (newTiles[i] == ' ') {
             if (direction == 'H') col++;
             else row++;
@@ -400,36 +414,36 @@ if (currentCol >= game->column) {
             continue;
         }
 
-        //printf("Debug: Placing '%c' at stack height %d\n", newTiles[i], currStackHeight);
+        printf("Debug: Placing '%c' at stack height %d\n", newTiles[i], currStackHeight);
         game->grid[row][col][currStackHeight] = newTiles[i];
-        //printf("Placed '%c' at (%d, %d). Stack height after placement: %d\n", newTiles[i], row, col, currStackHeight + 1);
+        printf("Placed '%c' at (%d, %d). Stack height after placement: %d\n", newTiles[i], row, col, currStackHeight + 1);
         (*num_tiles_placed)++;
         if (direction == 'H') col++;
         else row++;
-        //printf("Debug: Tile '%c' placed. New stack height: %d\n", newTiles[i], currStackHeight + 1);
+        printf("Debug: Tile '%c' placed. New stack height: %d\n", newTiles[i], currStackHeight + 1);
     }
 
     char *stateAfter = captureBoardState(game);
     free(newTiles);
-    //printf("Gamestate before saving: \n");
-    //displayBoard(game);
+    printf("Gamestate before saving: \n");
+    displayBoard(game);
     
     if (!checkBoardWords(game)) {
-        //printf("Board state invalid. Undo process in effect...\n");
+        printf("Board state invalid. Undo process in effect...\n");
         undo_place_tiles(game);
         *num_tiles_placed = 0; 
     }
 
     if (compareBoardStates(stateBefore, stateAfter)) {
     // The board state hasn't changed, indicating an invalid move
-        //fprintf(stderr, "Invalid move: No new word has been created. Undo process in effect...\n");
+        fprintf(stderr, "Invalid move: No new word has been created. Undo process in effect...\n");
         undo_place_tiles(game);
         *num_tiles_placed = 0; 
     
     }
     free(stateBefore);
     free(stateAfter);
-    //printf("Number of tiles placed: %d\n", *num_tiles_placed);
+    printf("Number of tiles placed: %d\n", *num_tiles_placed);
     return game;
 }
 
