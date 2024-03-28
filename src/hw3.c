@@ -63,6 +63,8 @@ int isWordValid(const char* word) {
     //printf("Word not found: %s\n", word); // Debug print for failure
     return 0;
 }
+
+
 char ***copyGrid(char ***grid, int rows, int columns) {
     char ***newGrid = malloc(rows * sizeof(char**));
     for (int i = 0; i < rows; ++i) {
@@ -74,6 +76,7 @@ char ***copyGrid(char ***grid, int rows, int columns) {
     }
     return newGrid;
 }
+
 void freeValidWords(GameState *game) {
     for (int i = 0; i < validTotal; i++) free(valid[i]);
     free(valid);
@@ -108,6 +111,7 @@ void free_game_state(GameState *game) {
 
     //game->isInitialized = false;
 }
+
 GameState* initialize_game_state(const char *filename) {
     //printf("Loading game state from file: %s\n", filename);
     FILE *f;
@@ -214,16 +218,34 @@ void increaseVertically(GameState *game, int new_rows) {
     //printf("Board has been expanded vertically.\n");
 }
 
-bool isFullCover(GameState *game, int row, int col, char direction, const char *tiles) {
-    for (size_t i = 0; tiles[i] != '\0'; i++) {
-        int targetRow = row + (direction == 'V' ? i : 0);
-        int targetCol = col + (direction == 'H' ? i : 0);
-
-        if (targetRow >= game->row || targetCol >= game->column) return false;
-        if (game->grid[targetRow][targetCol][0] == '.' || tiles[i] == ' ') return false;
+char* captureBoardState(GameState *game) {
+    int totalSize = game->row * game->column;
+    char *boardState = malloc(totalSize + 1); // +1 for the null terminator
+    if (!boardState) {
+        fprintf(stderr, "Memory allocation failed for capturing board state.\n");
+        return NULL;
     }
-    return true;
+
+    int pos = 0;
+    for (int i = 0; i < game->row; i++) {
+        for (int j = 0; j < game->column; j++) {
+            int stackHeight = 0;
+            while (game->grid[i][j][stackHeight] != '\0' && stackHeight < MAX_STACK_HEIGHT) {
+                stackHeight++;
+            }
+            boardState[pos++] = stackHeight > 0 ? game->grid[i][j][stackHeight - 1] : '.';
+        }
+    }
+    boardState[pos] = '\0';
+    return boardState;
 }
+
+bool compareBoardStates(char *stateBefore, char *stateAfter) {
+    if (stateBefore == NULL || stateAfter == NULL) return false; // Safety check
+    return strcmp(stateBefore, stateAfter) == 0;
+}
+
+
 GameState* place_tiles(GameState *game, int row, int col, char direction, const char *tiles, int *num_tiles_placed) {
     if (game == NULL || game->grid == NULL) {
         fprintf(stderr, "GameState has not been initialized properly!!\n");
@@ -280,64 +302,40 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
         // If it's the first word but the board is not empty (i.e., loaded from a file)
         game->isFirstWordInitiated = true;
   }
-
-
     game->prevRow = game->row;
     game->prevColumn = game->column;
     game->prevGrid = copyGrid(game->grid, game->row, game->column);
-    
-    //Changes for overlap
-    // bool isValidMove = false; 
-
-    // for (size_t i = 0; i < strlen(newTiles) && !isValidMove; i++) {
-    //     int targetRow = row + (direction == 'V' ? i : 0);
-    //     int targetCol = col + (direction == 'H' ? i : 0);
-
-    //     if (targetRow >= game->row || targetCol >= game->column) {
-    //         // Increase board size as needed, handled elsewhere
-    //         continue;
-    //     }
-
-    //     if (game->grid[targetRow][targetCol][0] == '.' || game->grid[targetRow][targetCol][0] != newTiles[i]) {
-    //         // If the spot is empty or the new tile is different, it's a valid move
-    //         isValidMove = true;
-    //     }
-    // }
-    char *existingWord = calloc(strlen(newTiles) + 1, sizeof(char));
-    bool isInvalidMove = true; 
-
-    for (size_t i = 0; i < strlen(newTiles); i++) {
-        int targetRow = row + (direction == 'V' ? i : 0);
-        int targetCol = col + (direction == 'H' ? i : 0);
-        
-        if (targetRow < game->row && targetCol < game->column) {
-            int stackHeight = 0;
-            while (game->grid[targetRow][targetCol][stackHeight] != '\0' && stackHeight < MAX_STACK_HEIGHT - 1) {
-                stackHeight++;
-            }
-            existingWord[i] = stackHeight > 0 ? game->grid[targetRow][targetCol][stackHeight - 1] : '.';
-        } else {
-            existingWord[i] = '.';
-        }
-    }
-
-    for (size_t i = 0; i < strlen(newTiles); i++) {
-        if (existingWord[i] != newTiles[i] && newTiles[i] != ' ') {
-            isInvalidMove = false;
-            break;
-        }
-    }
-
-    free(existingWord); 
 
     *num_tiles_placed = 0;
-
-    if (isInvalidMove || isFullCover(game, row, col, direction, newTiles)) {
-        //fprintf(stderr, "Invalid move: Cannot simply cover an existing word with identical tiles.\n");
-        free(newTiles); 
-        //printf("Number of tiles placed: %d\n", *num_tiles_placed);
-        return game; 
+    int coverCount = 0; // Count of tiles that will be placed on existing tiles
+    int newTilesLength = strlen(newTiles);
+    for (int i = 0; i < newTilesLength; i++) {
+        if (newTiles[i] != ' ') {
+            int currentRow = row + (direction == 'V' ? i : 0);
+            int currentCol = col + (direction == 'H' ? i : 0);
+            if (game->grid[currentRow][currentCol][0] != '.') {
+                coverCount++;
+            }
+        }
     }
+
+    int existingTileCount = 0; 
+    if (direction == 'H') {
+        for (int j = col; j < game->column && game->grid[row][j][0] != '.'; j++) {
+            existingTileCount++;
+        }
+    } else {
+        for (int i = row; i < game->row && game->grid[i][col][0] != '.'; i++) {
+            existingTileCount++;
+        }
+    }
+
+    if (coverCount >= existingTileCount && existingTileCount > 0) {
+        //fprintf(stderr, "Cannot cover all tiles of an existing word.\n");
+        free(newTiles);
+        return game;
+    }
+    char *stateBefore = captureBoardState(game);
 
     for (size_t i = 0; newTiles[i] != '\0'; i++) {
         //printf("Placing tiles: \"%s\" at Row: %d, Col: %d, Direction: %c\n", tiles, row, col, direction);
@@ -357,10 +355,10 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
 
         if (game->grid[row][col][0] == '.') {
             currStackHeight = 0;
-        }
+        } 
 
         if (currStackHeight >= MAX_STACK_HEIGHT) {
-            //fprintf(stderr, "Cannot place '%c' at (%d, %d). Stack height limit reached.\n", newTiles[i], row, col);
+            fprintf(stderr, "Cannot place '%c' at (%d, %d). Stack height limit reached.\n", newTiles[i], row, col);
             continue;
         }
 
@@ -373,19 +371,30 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
         //printf("Debug: Tile '%c' placed. New stack height: %d\n", newTiles[i], currStackHeight + 1);
     }
 
+    char *stateAfter = captureBoardState(game);
     free(newTiles);
     //printf("Gamestate before saving: \n");
     //displayBoard(game);
-
+    
     if (!checkBoardWords(game)) {
         //printf("Board state invalid. Undo process in effect...\n");
         undo_place_tiles(game);
         *num_tiles_placed = 0; 
     }
+
+    if (compareBoardStates(stateBefore, stateAfter)) {
+    // The board state hasn't changed, indicating an invalid move
+        //fprintf(stderr, "Invalid move: No new word has been created. Undo process in effect...\n");
+        undo_place_tiles(game);
+        *num_tiles_placed = 0; 
     
+    }
+    free(stateBefore);
+    free(stateAfter);
     //printf("Number of tiles placed: %d\n", *num_tiles_placed);
     return game;
 }
+
 
 void displayBoard(GameState *game) {
     printf("Current board state:\n");
@@ -511,6 +520,7 @@ void save_game_state(GameState *game, const char *filename) {
 
     printf("\n");
     //fprintf(destination, "\n");
+
     
     // Print the stack heights
     for (int i = 0; i < game->row; i++) {
@@ -533,6 +543,3 @@ void save_game_state(GameState *game, const char *filename) {
 
     fclose(destination);
 }
-
-
-
