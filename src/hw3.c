@@ -109,9 +109,7 @@ void free_game_state(GameState *game) {
     if (game != NULL) {
         for (int i = 0; i < game->row; i++) {
             for (int j = 0; j < game->column; j++) {
-                if (game->grid[i][j] != NULL) {
-                    free(game->grid[i][j]);  // Free each string
-                }
+                free(game->grid[i][j]);
             }
             free(game->grid[i]);
         }
@@ -170,8 +168,8 @@ GameState* initialize_game_state(const char *filename) {
     fseek(f, 0, SEEK_SET);
 
     GameState *game = malloc(sizeof(GameState));
-    game->isInitialized = 0; 
-    game->isFirstWordInitiated = false;
+    // game->isInitialized = 0; 
+    // game->isFirstWordInitiated = false;
 
     if (!game) {
         perror("Malloc failed");
@@ -188,6 +186,9 @@ GameState* initialize_game_state(const char *filename) {
     game->prevGrid = NULL;
     game->prevRow = 0;
     game->prevColumn = 0;
+
+    game->row = totalRows;
+    game->column = maxColumn;
 
     game->grid = malloc(game->row * sizeof(char**));
     for (int i = 0; i < game->row; ++i) {
@@ -564,6 +565,7 @@ bool checkBoardWords(GameState *game) {
     free(wordBuffer);
     return true;
 }
+
 GameState* undo_place_tiles(GameState *game) {
     if (!game || !game->prevGrid) return game; // Nothing to undo
 
@@ -638,3 +640,4 @@ void save_game_state(GameState *game, const char *filename) {
 
     fclose(destination);
 }
+
