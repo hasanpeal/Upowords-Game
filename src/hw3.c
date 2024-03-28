@@ -109,7 +109,9 @@ void free_game_state(GameState *game) {
     if (game != NULL) {
         for (int i = 0; i < game->row; i++) {
             for (int j = 0; j < game->column; j++) {
-                free(game->grid[i][j]);
+                if (game->grid[i][j] != NULL) {
+                    free(game->grid[i][j]);  // Free each string
+                }
             }
             free(game->grid[i]);
         }
@@ -177,8 +179,15 @@ GameState* initialize_game_state(const char *filename) {
         return NULL;
     }
 
-    game->row = totalRows;
-    game->column = maxColumn;
+    game->grid = NULL;
+    game->row = 0;
+    game->column = 0;
+    game->isInitialized = 0;
+    game->isFirstWordInitiated = false;
+    game->validWordsLoaded = false;
+    game->prevGrid = NULL;
+    game->prevRow = 0;
+    game->prevColumn = 0;
 
     game->grid = malloc(game->row * sizeof(char**));
     for (int i = 0; i < game->row; ++i) {
@@ -629,4 +638,3 @@ void save_game_state(GameState *game, const char *filename) {
 
     fclose(destination);
 }
-
