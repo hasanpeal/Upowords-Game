@@ -555,8 +555,6 @@ bool checkBoardWords(GameState *game) {
     free(wordBuffer);
     return true;
 }
-
-
 GameState* undo_place_tiles(GameState *game) {
     if (!game || !game->prevGrid) return game; // Nothing to undo
 
