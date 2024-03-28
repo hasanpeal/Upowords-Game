@@ -101,6 +101,20 @@ void free_game_state(GameState *game) {
             free(game->grid[i]);
         }
         free(game->grid);
+
+        // Free the previous grid (if it exists)
+        if (game->prevGrid != NULL) {
+            for (int i = 0; i < game->prevRow; i++) {
+                for (int j = 0; j < game->prevColumn; j++) {
+                    free(game->prevGrid[i][j]);
+                }
+                free(game->prevGrid[i]);
+            }
+            free(game->prevGrid);
+            game->prevGrid = NULL; // Ensure the pointer is cleared after freeing
+        }
+
+
         if (game->validWordsLoaded) {
             freeValidWords(game);
         }
