@@ -341,6 +341,38 @@ if (currentCol >= game->column) {
         free(newTiles);
         return game;
     }
+
+
+
+
+
+
+
+    bool interactsWithExistingTile = false;
+
+    if (!isEmptyBoard) { // Skip this check if it's the first placement
+        for (size_t i = 0; i < strlen(tiles); ++i) {
+            int currentRow = row + (direction == 'V' ? i : 0);
+            int currentCol = col + (direction == 'H' ? i : 0);
+
+            // Ensure the grid is properly expanded (your existing logic here)
+
+            // Check if placing a tile next to or on top of an existing tile
+            if ((direction == 'H' && (currentCol < game->column - 1 && game->grid[row][currentCol + 1][0] != '.')) ||
+                (direction == 'V' && (currentRow < game->row - 1 && game->grid[currentRow + 1][col][0] != '.')) ||
+                game->grid[currentRow][currentCol][0] != '.') {
+                interactsWithExistingTile = true;
+                break; // Found an interaction, no need to check further
+            }
+        }
+
+        if (!interactsWithExistingTile) {
+            // If no interaction with existing tiles, it's an invalid move (unless it's the first move on an empty board)
+            fprintf(stderr, "Invalid move: A word must interact with an existing tile.\n");
+            free(newTiles);
+            return game;
+        }
+    }
     char *stateBefore = captureBoardState(game);
 
     for (size_t i = 0; newTiles[i] != '\0'; i++) {
