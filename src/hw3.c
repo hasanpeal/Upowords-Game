@@ -313,6 +313,12 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
         if (newTiles[i] != ' ') {
             int currentRow = row + (direction == 'V' ? i : 0);
             int currentCol = col + (direction == 'H' ? i : 0);
+            if (currentRow >= game->row) {
+    increaseVertically(game, currentRow + 1); // Ensure the grid has enough rows
+}
+if (currentCol >= game->column) {
+    increaseHorizontally(game, currentCol + 1); // Ensure the grid has enough columns
+}
             if (game->grid[currentRow][currentCol][0] != '.') {
                 coverCount++;
             }
