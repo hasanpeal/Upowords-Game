@@ -341,11 +341,11 @@ if (currentCol >= game->column) {
     if (coverCount >= existingTileCount && existingTileCount > 0) {
         fprintf(stderr, "Cannot cover all tiles of an existing word.\n");
         free(newTiles);
+        game->column = game->prevColumn;
+        game->row = game->prevRow;
+        game->grid = copyGrid(game->prevGrid, game->row, game->column);
         return game;
     }
-
-
-
 
     bool interactsWithExistingTile = false;
     if (!isEmptyBoard) { // Skip this check if it's the first placement
@@ -354,7 +354,12 @@ if (currentCol >= game->column) {
 
             int currentRow = row + (direction == 'V' ? i : 0);
             int currentCol = col + (direction == 'H' ? i : 0);
-
+            if (currentRow >= game->row) {
+    increaseVertically(game, currentRow + 1); // Ensure the grid has enough rows
+}
+if (currentCol >= game->column) {
+    increaseHorizontally(game, currentCol + 1); // Ensure the grid has enough columns
+}
 
             // Check interaction in all relevant directions
             bool leftOrAboveExists = (direction == 'H' && currentCol > 0 && game->grid[currentRow][currentCol - 1][0] != '.') ||
@@ -384,6 +389,9 @@ if (currentCol >= game->column) {
             // If no interaction with existing tiles, it's an invalid move (unless it's the first move on an empty board)
             fprintf(stderr, "Invalid move: A word must interact with an existing tile.\n");
             free(newTiles); // Remember to free allocated memory before returning
+            game->column = game->prevColumn;
+            game->row = game->prevRow;
+            game->grid = copyGrid(game->prevGrid, game->row, game->column);
             return game;
         }
     }
@@ -411,7 +419,8 @@ if (currentCol >= game->column) {
 
         if (currStackHeight >= MAX_STACK_HEIGHT) {
             fprintf(stderr, "Cannot place '%c' at (%d, %d). Stack height limit reached.\n", newTiles[i], row, col);
-            continue;
+            free(newTiles);
+            return game;
         }
 
         printf("Debug: Placing '%c' at stack height %d\n", newTiles[i], currStackHeight);
@@ -425,8 +434,8 @@ if (currentCol >= game->column) {
 
     char *stateAfter = captureBoardState(game);
     free(newTiles);
-    printf("Gamestate before saving: \n");
-    displayBoard(game);
+    // printf("Gamestate before saving: \n");
+    // displayBoard(game);
     
     if (!checkBoardWords(game)) {
         printf("Board state invalid. Undo process in effect...\n");
@@ -595,3 +604,4 @@ void save_game_state(GameState *game, const char *filename) {
 
     fclose(destination);
 }
+

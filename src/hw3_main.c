@@ -34,7 +34,7 @@
 // void freeGameMemory(GameState *game);
 // char ***copyGrid(char ***grid, int rows, int columns);
 
-// #define MAX_STACK_HEIGHT 6 
+// #define MAX_STACK_HEIGHT 5 
 
 // char **valid = NULL;
 // int validTotal = 0;
@@ -66,7 +66,7 @@
 //     }
 //     free(currWord); 
 //     fclose(file);
-//     //printf("Loaded %d valid words.\n", validTotal);
+//     printf("Loaded %d valid words.\n", validTotal);
 //     game->validWordsLoaded = true;
 // }
 
@@ -244,6 +244,34 @@
 //     printf("Board has been expanded vertically.\n");
 // }
 
+// char* captureBoardState(GameState *game) {
+//     int totalSize = game->row * game->column;
+//     char *boardState = malloc(totalSize + 1); // +1 for the null terminator
+//     if (!boardState) {
+//         fprintf(stderr, "Memory allocation failed for capturing board state.\n");
+//         return NULL;
+//     }
+
+//     int pos = 0;
+//     for (int i = 0; i < game->row; i++) {
+//         for (int j = 0; j < game->column; j++) {
+//             int stackHeight = 0;
+//             while (game->grid[i][j][stackHeight] != '\0' && stackHeight < MAX_STACK_HEIGHT) {
+//                 stackHeight++;
+//             }
+//             boardState[pos++] = stackHeight > 0 ? game->grid[i][j][stackHeight - 1] : '.';
+//         }
+//     }
+//     boardState[pos] = '\0';
+//     return boardState;
+// }
+
+// bool compareBoardStates(char *stateBefore, char *stateAfter) {
+//     if (stateBefore == NULL || stateAfter == NULL) return false; // Safety check
+//     return strcmp(stateBefore, stateAfter) == 0;
+// }
+
+
 // GameState* place_tiles(GameState *game, int row, int col, char direction, const char *tiles, int *num_tiles_placed) {
 //     if (game == NULL || game->grid == NULL) {
 //         fprintf(stderr, "GameState has not been initialized properly!!\n");
@@ -300,65 +328,102 @@
 //         // If it's the first word but the board is not empty (i.e., loaded from a file)
 //         game->isFirstWordInitiated = true;
 //   }
-
-
 //     game->prevRow = game->row;
 //     game->prevColumn = game->column;
 //     game->prevGrid = copyGrid(game->grid, game->row, game->column);
-    
-//     //Changes for overlap
-//     // bool isValidMove = false; 
-
-//     // for (size_t i = 0; i < strlen(newTiles) && !isValidMove; i++) {
-//     //     int targetRow = row + (direction == 'V' ? i : 0);
-//     //     int targetCol = col + (direction == 'H' ? i : 0);
-
-//     //     if (targetRow >= game->row || targetCol >= game->column) {
-//     //         // Increase board size as needed, handled elsewhere
-//     //         continue;
-//     //     }
-
-//     //     if (game->grid[targetRow][targetCol][0] == '.' || game->grid[targetRow][targetCol][0] != newTiles[i]) {
-//     //         // If the spot is empty or the new tile is different, it's a valid move
-//     //         isValidMove = true;
-//     //     }
-//     // }
-//     char *existingWord = calloc(strlen(newTiles) + 1, sizeof(char));
-//     bool isInvalidMove = true; 
-
-//     for (size_t i = 0; i < strlen(newTiles); i++) {
-//         int targetRow = row + (direction == 'V' ? i : 0);
-//         int targetCol = col + (direction == 'H' ? i : 0);
-        
-//         if (targetRow < game->row && targetCol < game->column) {
-//             int stackHeight = 0;
-//             while (game->grid[targetRow][targetCol][stackHeight] != '\0' && stackHeight < MAX_STACK_HEIGHT - 1) {
-//                 stackHeight++;
-//             }
-//             existingWord[i] = stackHeight > 0 ? game->grid[targetRow][targetCol][stackHeight - 1] : '.';
-//         } else {
-//             existingWord[i] = '.';
-//         }
-//     }
-
-//     for (size_t i = 0; i < strlen(newTiles); i++) {
-//         if (existingWord[i] != newTiles[i] && newTiles[i] != ' ') {
-//             isInvalidMove = false;
-//             break;
-//         }
-//     }
-
-//     free(existingWord); 
 
 //     *num_tiles_placed = 0;
+//     int coverCount = 0; // Count of tiles that will be placed on existing tiles
+//     int newTilesLength = strlen(newTiles);
+//     for (int i = 0; i < newTilesLength; i++) {
+//         if (newTiles[i] != ' ') {
+//             int currentRow = row + (direction == 'V' ? i : 0);
+//             int currentCol = col + (direction == 'H' ? i : 0);
+//             if (currentRow >= game->row) {
+//     increaseVertically(game, currentRow + 1); // Ensure the grid has enough rows
+// }
+// if (currentCol >= game->column) {
+//     increaseHorizontally(game, currentCol + 1); // Ensure the grid has enough columns
+// }
 
-//     if (isInvalidMove) {
-//         fprintf(stderr, "Invalid move: Cannot simply cover an existing word with identical tiles.\n");
-//         free(newTiles); 
-//         printf("Number of tiles placed: %d\n", *num_tiles_placed);
-//         return game; 
+//             if (game->grid[currentRow][currentCol][0] != '.') {
+//                 //changes
+                
+//                 coverCount++;
+//             }
+//         }
 //     }
 
+//     int existingTileCount = 0; 
+//     if (direction == 'H') {
+//         for (int j = col; j < game->column && game->grid[row][j][0] != '.'; j++) {
+//             existingTileCount++;
+//         }
+//     } else {
+//         for (int i = row; i < game->row && game->grid[i][col][0] != '.'; i++) {
+//             existingTileCount++;
+//         }
+//     }
+
+//     if (coverCount >= existingTileCount && existingTileCount > 0) {
+//         fprintf(stderr, "Cannot cover all tiles of an existing word.\n");
+//         free(newTiles);
+//         game->column = game->prevColumn;
+//         game->row = game->prevRow;
+//         game->grid = copyGrid(game->prevGrid, game->row, game->column);
+//         return game;
+//     }
+
+//     bool interactsWithExistingTile = false;
+//     if (!isEmptyBoard) { // Skip this check if it's the first placement
+//         for (size_t i = 0; i < strlen(tiles); ++i) {
+//             if (tiles[i] == ' ') continue; // Skip spaces in the tiles string
+
+//             int currentRow = row + (direction == 'V' ? i : 0);
+//             int currentCol = col + (direction == 'H' ? i : 0);
+//             if (currentRow >= game->row) {
+//     increaseVertically(game, currentRow + 1); // Ensure the grid has enough rows
+// }
+// if (currentCol >= game->column) {
+//     increaseHorizontally(game, currentCol + 1); // Ensure the grid has enough columns
+// }
+
+//             // Check interaction in all relevant directions
+//             bool leftOrAboveExists = (direction == 'H' && currentCol > 0 && game->grid[currentRow][currentCol - 1][0] != '.') ||
+//                                      (direction == 'V' && currentRow > 0 && game->grid[currentRow - 1][currentCol][0] != '.');
+
+//             bool rightOrBelowExists = (direction == 'H' && currentCol < game->column - 1 && game->grid[currentRow][currentCol + 1][0] != '.') ||
+//                                       (direction == 'V' && currentRow < game->row - 1 && game->grid[currentRow + 1][currentCol][0] != '.');
+
+//             bool onTopExists = game->grid[currentRow][currentCol][0] != '.';
+
+//             bool verticalNeighborExists = direction == 'H' &&
+//                                           ((currentRow > 0 && game->grid[currentRow - 1][currentCol][0] != '.') ||
+//                                            (currentRow < game->row - 1 && game->grid[currentRow + 1][currentCol][0] != '.'));
+
+//             bool horizontalNeighborExists = direction == 'V' &&
+//                                             ((currentCol > 0 && game->grid[currentRow][currentCol - 1][0] != '.') ||
+//                                              (currentCol < game->column - 1 && game->grid[currentRow][currentCol + 1][0] != '.'));
+
+//             if (leftOrAboveExists || rightOrBelowExists || onTopExists || verticalNeighborExists || horizontalNeighborExists) {
+//                 interactsWithExistingTile = true;
+//                 break; // Found an interaction, no need to check further
+//             }
+//         }
+
+
+//         if (!interactsWithExistingTile) {
+//             // If no interaction with existing tiles, it's an invalid move (unless it's the first move on an empty board)
+//             fprintf(stderr, "Invalid move: A word must interact with an existing tile.\n");
+//             free(newTiles); // Remember to free allocated memory before returning
+//             game->column = game->prevColumn;
+//             game->row = game->prevRow;
+//             game->grid = copyGrid(game->prevGrid, game->row, game->column);
+//             return game;
+//         }
+//     }
+//     char *stateBefore = captureBoardState(game);
+    
 //     for (size_t i = 0; newTiles[i] != '\0'; i++) {
 //         printf("Placing tiles: \"%s\" at Row: %d, Col: %d, Direction: %c\n", tiles, row, col, direction);
 //         if (newTiles[i] == ' ') {
@@ -377,11 +442,12 @@
 
 //         if (game->grid[row][col][0] == '.') {
 //             currStackHeight = 0;
-//         }
+//         } 
 
 //         if (currStackHeight >= MAX_STACK_HEIGHT) {
 //             fprintf(stderr, "Cannot place '%c' at (%d, %d). Stack height limit reached.\n", newTiles[i], row, col);
-//             continue;
+//             free(newTiles);
+//             return game;
 //         }
 
 //         printf("Debug: Placing '%c' at stack height %d\n", newTiles[i], currStackHeight);
@@ -393,16 +459,26 @@
 //         printf("Debug: Tile '%c' placed. New stack height: %d\n", newTiles[i], currStackHeight + 1);
 //     }
 
+//     char *stateAfter = captureBoardState(game);
 //     free(newTiles);
-//     printf("Gamestate before saving: \n");
-//     displayBoard(game);
-
+//     // printf("Gamestate before saving: \n");
+//     // displayBoard(game);
+    
 //     if (!checkBoardWords(game)) {
 //         printf("Board state invalid. Undo process in effect...\n");
 //         undo_place_tiles(game);
 //         *num_tiles_placed = 0; 
 //     }
+
+//     if (compareBoardStates(stateBefore, stateAfter)) {
+//     // The board state hasn't changed, indicating an invalid move
+//         fprintf(stderr, "Invalid move: No new word has been created. Undo process in effect...\n");
+//         undo_place_tiles(game);
+//         *num_tiles_placed = 0; 
     
+//     }
+//     free(stateBefore);
+//     free(stateAfter);
 //     printf("Number of tiles placed: %d\n", *num_tiles_placed);
 //     return game;
 // }
@@ -444,7 +520,7 @@
 //                 if (wordLength > 1) {
 //                     wordBuffer[wordLength] = '\0';
 //                     if (!isWordValid(wordBuffer)) {
-//                         printf("Invalid word has been found: %s\n", wordBuffer);
+//                         //printf("Invalid word has been found: %s\n", wordBuffer);
 //                         free(wordBuffer);
 //                         return false;
 //                     }
@@ -466,7 +542,7 @@
 //                 if (wordLength > 1) {
 //                     wordBuffer[wordLength] = '\0';
 //                     if (!isWordValid(wordBuffer)) {
-//                         printf("Invalid word found: %s\n", wordBuffer);
+//                         //printf("Invalid word found: %s\n", wordBuffer);
 //                         free(wordBuffer);
 //                         return false;
 //                     }
@@ -521,10 +597,10 @@
 //             }
 //             if (savingStackHeight > 0) {
 //                 fprintf(destination, "%c", game->grid[i][k][savingStackHeight - 1]);
-//                 printf("Debug: Writing '%c' at (%d,%d) with stack height %d\n", game->grid[i][k][savingStackHeight - 1], i, k, savingStackHeight);
+//                 //printf("Debug: Writing '%c' at (%d,%d) with stack height %d\n", game->grid[i][k][savingStackHeight - 1], i, k, savingStackHeight);
 //             } else {
 //                 fprintf(destination, ".");
-//                 printf("Debug: Writing '.' at (%d,%d) as it's empty\n", i, k);
+//                 //printf("Debug: Writing '.' at (%d,%d) as it's empty\n", i, k);
 //             }
 //         }
 //         fprintf(destination, "\n");
@@ -541,13 +617,13 @@
 //             // Check if the cell is actually empty
 //             if (game->grid[i][k][0] == '.') {
 //                 fprintf(destination, "0");
-//                 printf("Debug: Stack height at (%d,%d) is %d\n", i, k, stackHeight);
+//                 //printf("Debug: Stack height at (%d,%d) is %d\n", i, k, stackHeight);
 //             } else {
 //                 while (game->grid[i][k][stackHeight] != '\0' && stackHeight < MAX_STACK_HEIGHT) {
 //                     stackHeight++;
 //                 }
 //                 fprintf(destination, "%d", stackHeight);
-//                 printf("Debug: Stack height at (%d,%d) is %d\n", i, k, stackHeight);
+//                 //printf("Debug: Stack height at (%d,%d) is %d\n", i, k, stackHeight);
 //             }
 //         }
 //         fprintf(destination, "\n");
@@ -563,15 +639,63 @@
 //     static const char *actual_filename = "./tests/actual_outputs/test_output.txt";
 //     static int num_tiles_placed;
 
-// 	GameState *game2 = initialize_game_state("./tests/boards/board01.txt"); 
-//     game2 = place_tiles(game2, 3, 2, 'H', "C", &num_tiles_placed);
-//     save_game_state(game2, actual_filename);
-//     free_game_state(game2);
-
 //     GameState *game = initialize_game_state("./tests/boards/board04.txt");
-//     game = place_tiles(game, 2, 7, 'V', "H B ID", &num_tiles_placed);
+//     game = place_tiles(game, 8, 18, 'V', "TREAT", &num_tiles_placed);
 //     save_game_state(game, actual_filename);
 //     free_game_state(game);
+
+//     // GameState *game33 = initialize_game_state("./tests/boards/board02.txt"); 
+//     // game33 = place_tiles(game33,0 , 0, 'H', "CANDY", &num_tiles_placed);
+//     // game33 = place_tiles(game33,0 , 0, 'H', "R", &num_tiles_placed);
+//     // game33 = place_tiles(game33,0 , 0, 'H', "B", &num_tiles_placed);
+//     // game33 = place_tiles(game33,0 , 0, 'H', "S", &num_tiles_placed);
+//     // game33 = place_tiles(game33,0 , 0, 'H', "H", &num_tiles_placed);
+//     // game33 = place_tiles(game33,0 , 0, 'H', "D", &num_tiles_placed);
+//     // free_game_state(game33);
+
+//     // printf("----------------------------------------------------------------\n");
+// 	// GameState *game = initialize_game_state("./tests/boards/board04.txt");
+//     // game = place_tiles(game, 4, 19, 'H', "INSERT", &num_tiles_placed);
+//     // save_game_state(game, actual_filename);
+//     // free_game_state(game);
+
+//     // printf("----------------------------------------------------------------\n");
+
+//     // GameState *game9 = initialize_game_state("/workspaces/cse220_hw3/tests/boards/board01.txt"); 
+//     // game9 = place_tiles(game9, 0, 2, 'V', "UNUSURPING", &num_tiles_placed);
+//     // save_game_state(game9, actual_filename);
+//     // free_game_state(game9);
+
+//     // printf("----------------------------------------------------------------\n");
+
+//     // GameState *game31 = initialize_game_state("./tests/boards/board05.txt");
+//     // game31 = place_tiles(game31, 0, 0, 'H', "CAT", &num_tiles_placed);
+//     // save_game_state(game31, actual_filename);
+//     // free_game_state(game31);
+
+//     // printf("----------------------------------------------------------------\n");
+
+// 	// GameState *game2 = initialize_game_state("./tests/boards/board01.txt"); 
+//     // game2 = place_tiles(game2, 3, 2, 'H', "C", &num_tiles_placed);
+//     // save_game_state(game2, actual_filename);
+//     // free_game_state(game2);
+
+//     // printf("----------------------------------------------------------------\n");
+
+//     // GameState *game11 = initialize_game_state("./tests/boards/board04.txt");
+//     // game11 = place_tiles(game11, 2, 7, 'V', "H B ID", &num_tiles_placed);
+//     // printf("Board state after tiles placement:\n");
+//     // displayBoard(game11);
+//     // save_game_state(game11, actual_filename);
+//     // free_game_state(game11);
+
+//     // printf("----------------------------------------------------------------\n");
+    
+//     // GameState *game22 = initialize_game_state("./tests/boards/board02.txt");
+//     // game22 = place_tiles(game22, 0, 0, 'H', "CAT", &num_tiles_placed);
+//     // game22 = place_tiles(game22, 0, 0, 'H', "TOT", &num_tiles_placed);
+//     // save_game_state(game22, actual_filename);
+//     // free_game_state(game22);
 
 //     // GameState *game3 = initialize_game_state("./tests/boards/board08.txt"); 
 //     // game3 = place_tiles(game3, 6, 12, 'H', " ROID", &num_tiles_placed);
