@@ -434,6 +434,8 @@ if (currentCol >= game->column) {
     }
     char *stateBefore = captureBoardState(game);
     
+    bool isValidOverlap = true; 
+
     for (size_t i = 0; newTiles[i] != '\0'; i++) {
         //printf("Placing tiles: \"%s\" at Row: %d, Col: %d, Direction: %c\n", tiles, row, col, direction);
         if (newTiles[i] == ' ') {
@@ -452,7 +454,12 @@ if (currentCol >= game->column) {
 
         if (game->grid[row][col][0] == '.') {
             currStackHeight = 0;
-        } 
+        } else {
+            if (game->grid[row][col][currStackHeight - 1] == newTiles[i]) {
+                isValidOverlap = false; // Mark as invalid overlap
+                break; // No need to check further
+            }
+        }
 
         if (currStackHeight >= MAX_STACK_HEIGHT) {
             //fprintf(stderr, "Cannot place '%c' at (%d, %d). Stack height limit reached.\n", newTiles[i], row, col);
@@ -478,6 +485,13 @@ if (currentCol >= game->column) {
         //printf("Board state invalid. Undo process in effect...\n");
         undo_place_tiles(game);
         *num_tiles_placed = 0; 
+    }
+
+    if (!isValidOverlap) {
+        //fprintf(stderr, "Invalid move: Overlapping the same letter.\n");
+        undo_place_tiles(game);
+        *num_tiles_placed = 0; // Reset the number of tiles placed
+        return game;
     }
 
     if (compareBoardStates(stateBefore, stateAfter)) {
