@@ -340,6 +340,19 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
   }
     game->prevRow = game->row;
     game->prevColumn = game->column;
+
+    if (game->prevGrid != NULL) {
+    // Free the previously stored prevGrid to prevent memory leaks
+    for (int i = 0; i < game->prevRow; ++i) {
+        for (int j = 0; j < game->prevColumn; ++j) {
+            free(game->prevGrid[i][j]);  // Free each string
+        }
+        free(game->prevGrid[i]);  // Free each row pointer
+    }
+    free(game->prevGrid);  // Finally, free the grid pointer itself
+    game->prevGrid = NULL;  // Reset to NULL to avoid dangling pointer
+}
+
     game->prevGrid = copyGrid(game->grid, game->row, game->column);
 
     *num_tiles_placed = 0;
