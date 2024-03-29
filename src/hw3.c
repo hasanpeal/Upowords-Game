@@ -15,6 +15,23 @@ int validTotal = 0;
 int isGameInitialized = 0;
 
 
+void pushCurrentState(GameState *game) {
+    if (game->prevCount == game->prevCapacity) {
+        // Resize the stacks if necessary
+        int newCapacity = game->prevCapacity == 0 ? 1 : game->prevCapacity * 2;
+        game->prevGrids = realloc(game->prevGrids, newCapacity * sizeof(char ***));
+        game->prevRows = realloc(game->prevRows, newCapacity * sizeof(int));
+        game->prevColumns = realloc(game->prevColumns, newCapacity * sizeof(int));
+        game->prevCapacity = newCapacity;
+    }
+
+    // Push the current state
+    game->prevGrids[game->prevCount] = copyGrid(game->grid, game->row, game->column);
+    game->prevRows[game->prevCount] = game->row;
+    game->prevColumns[game->prevCount] = game->column;
+    game->prevCount++;
+}
+
 void loadValidWords(const char* filename, GameState *game) {
     //printf("Initiating all valid words from: %s\n", filename);
     FILE *file = fopen(filename, "r");
@@ -107,6 +124,7 @@ void initiatedCheck(GameState *game) {
 
 void free_game_state(GameState *game) {
     if (game != NULL) {
+        // Free the current grid
         for (int i = 0; i < game->row; i++) {
             for (int j = 0; j < game->column; j++) {
                 free(game->grid[i][j]);
@@ -115,29 +133,29 @@ void free_game_state(GameState *game) {
         }
         free(game->grid);
 
-        // Free the previous grid (if it exists)
-        if (game->prevGrid != NULL) {
-            for (int i = 0; i < game->prevRow; i++) {
-                for (int j = 0; j < game->prevColumn; j++) {
-                    free(game->prevGrid[i][j]);
+        // Free all previous states
+        for (int i = 0; i < game->prevCount; i++) {
+            for (int j = 0; j < game->prevRows[i]; j++) {
+                for (int k = 0; k < game->prevColumns[i]; k++) {
+                    free(game->prevGrids[i][j][k]);
                 }
-                free(game->prevGrid[i]);
+                free(game->prevGrids[i][j]);
             }
-            free(game->prevGrid);
-            game->prevGrid = NULL; // Ensure the pointer is cleared after freeing
+            free(game->prevGrids[i]);
         }
+        free(game->prevGrids);
+        free(game->prevRows);
+        free(game->prevColumns);
 
-
+        // Free other resources and set the game to an uninitialized state
         if (game->validWordsLoaded) {
             freeValidWords(game);
         }
         free(game);
     }
-
     isGameInitialized = 0;
-
-    //game->isInitialized = false;
 }
+
 
 GameState* initialize_game_state(const char *filename) {
     //printf("Loading game state from file: %s\n", filename);
@@ -183,9 +201,11 @@ GameState* initialize_game_state(const char *filename) {
     game->isInitialized = 0;
     game->isFirstWordInitiated = false;
     game->validWordsLoaded = false;
-    game->prevGrid = NULL;
-    game->prevRow = 0;
-    game->prevColumn = 0;
+    game->prevGrids = NULL;
+    game->prevRows = NULL;
+    game->prevColumns = NULL;
+    game->prevCount = 0;
+    game->prevCapacity = 0;
 
     game->row = totalRows;
     game->column = maxColumn;
@@ -338,22 +358,25 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
         // If it's the first word but the board is not empty (i.e., loaded from a file)
         game->isFirstWordInitiated = true;
   }
-    game->prevRow = game->row;
-    game->prevColumn = game->column;
+    
+    if (game->prevCount == game->prevCapacity) {
+    size_t newCapacity = game->prevCapacity == 0 ? 1 : game->prevCapacity * 2;
+    game->prevGrids = realloc(game->prevGrids, newCapacity * sizeof(char***));
+    game->prevRows = realloc(game->prevRows, newCapacity * sizeof(int));
+    game->prevColumns = realloc(game->prevColumns, newCapacity * sizeof(int));
 
-    if (game->prevGrid != NULL) {
-    // Free the previously stored prevGrid to prevent memory leaks
-    for (int i = 0; i < game->prevRow; ++i) {
-        for (int j = 0; j < game->prevColumn; ++j) {
-            free(game->prevGrid[i][j]);  // Free each string
-        }
-        free(game->prevGrid[i]);  // Free each row pointer
+    if (!game->prevGrids || !game->prevRows || !game->prevColumns) {
+        return game;
     }
-    free(game->prevGrid);  // Finally, free the grid pointer itself
-    game->prevGrid = NULL;  // Reset to NULL to avoid dangling pointer
+
+    game->prevCapacity = newCapacity;
 }
 
-    game->prevGrid = copyGrid(game->grid, game->row, game->column);
+// Store current state in the undo stack
+game->prevRows[game->prevCount] = game->row;
+game->prevColumns[game->prevCount] = game->column;
+game->prevGrids[game->prevCount] = copyGrid(game->grid, game->row, game->column);
+game->prevCount++;
 
     *num_tiles_placed = 0;
     int coverCount = 0; // Count of tiles that will be placed on existing tiles
@@ -591,9 +614,13 @@ bool checkBoardWords(GameState *game) {
 }
 
 GameState* undo_place_tiles(GameState *game) {
-    if (!game || !game->prevGrid) return game; // Nothing to undo
-
-    // Free current grid
+    if (!game || game->prevCount == 0) return game; // Nothing to undo
+    
+    int lastIdx = game->prevCount - 1;
+    char ***prevGrid = game->prevGrids[lastIdx];
+    int prevRow = game->prevRows[lastIdx];
+    int prevColumn = game->prevColumns[lastIdx];
+    
     for (int i = 0; i < game->row; i++) {
         for (int j = 0; j < game->column; j++) {
             free(game->grid[i][j]);
@@ -601,16 +628,17 @@ GameState* undo_place_tiles(GameState *game) {
         free(game->grid[i]);
     }
     free(game->grid);
-
-    // Restore previous grid
-    game->grid = game->prevGrid;
-    game->row = game->prevRow;
-    game->column = game->prevColumn;
-
-    // Nullify prevGrid to prevent double-freeing
-    game->prevGrid = NULL;
-
-    //printf("Undo successful. Board reverted to previous state.\n");
+    
+    game->grid = prevGrid;
+    game->row = prevRow;
+    game->column = prevColumn;
+    
+    game->prevGrids[lastIdx] = NULL;
+    game->prevRows[lastIdx] = 0;
+    game->prevColumns[lastIdx] = 0;
+    
+    game->prevCount--;
+    
     return game;
 }
 

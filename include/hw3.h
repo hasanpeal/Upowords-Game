@@ -12,9 +12,12 @@ typedef struct GameState {
     int isInitialized;
     bool isFirstWordInitiated; 
     bool validWordsLoaded;
-    char ***prevGrid; 
-    int prevRow;      
-    int prevColumn;
+    
+    char ****prevGrids; 
+    int *prevRows;      
+    int *prevColumns;   
+    int prevCount;      
+    int prevCapacity;
 } GameState;
 
 void initiatedCheck();
