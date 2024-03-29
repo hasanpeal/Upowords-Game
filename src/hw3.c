@@ -310,6 +310,7 @@ GameState* place_tiles(GameState *game, int row, int col, char direction, const 
 
     if (row < 0 || col < 0 || row >= game->row || col >= game->column) {
         fprintf(stderr, "Initial placement position is out of bounds.\n");
+        *num_tiles_placed = 0;
         return game; 
     }
 
