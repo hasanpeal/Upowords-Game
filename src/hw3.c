@@ -459,7 +459,8 @@ if (currentCol >= game->column) {
         if (!interactsWithExistingTile) {
             // If no interaction with existing tiles, it's an invalid move (unless it's the first move on an empty board)
             //fprintf(stderr, "Invalid move: A word must interact with an existing tile.\n");
-            free(newTiles); // Remember to free allocated memory before returning
+            free(newTiles); 
+            *num_tiles_placed = 0;
             undo_place_tiles(game);
             return game;
         }
