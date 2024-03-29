@@ -437,9 +437,7 @@ if (currentCol >= game->column) {
             // If no interaction with existing tiles, it's an invalid move (unless it's the first move on an empty board)
             //fprintf(stderr, "Invalid move: A word must interact with an existing tile.\n");
             free(newTiles); // Remember to free allocated memory before returning
-            game->column = game->prevColumn;
-            game->row = game->prevRow;
-            game->grid = copyGrid(game->prevGrid, game->row, game->column);
+            undo_place_tiles(game);
             return game;
         }
     }
@@ -666,4 +664,5 @@ void save_game_state(GameState *game, const char *filename) {
 
     fclose(destination);
 }
+
 
