@@ -7,7 +7,7 @@
 #include "hw3.h" 
 
 //#define DEBUG(...) fprintf(stderr, "[] [ DEBUG ] "); fprintf(stderr, __VA_ARGS__); fprintf(stderr, " -- %s()\n", __func__)
-#define MAX_STACK_HEIGHT 6 
+#define MAX_STACK_HEIGHT 5 
 
 char **valid = NULL;
 int validTotal = 0;
