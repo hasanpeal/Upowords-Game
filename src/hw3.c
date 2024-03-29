@@ -472,9 +472,10 @@ if (currentCol >= game->column) {
             }
         }
 
-        if (currStackHeight >= MAX_STACK_HEIGHT) {
+        if (currStackHeight >= MAX_STACK_HEIGHT - 1) {
             //fprintf(stderr, "Cannot place '%c' at (%d, %d). Stack height limit reached.\n", newTiles[i], row, col);
             free(newTiles);
+            free(stateBefore);
             return game;
         }
 
