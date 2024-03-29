@@ -378,9 +378,7 @@ if (currentCol >= game->column) {
     if (coverCount >= existingTileCount && existingTileCount > 0) {
         //fprintf(stderr, "Cannot cover all tiles of an existing word.\n");
         free(newTiles);
-        game->column = game->prevColumn;
-        game->row = game->prevRow;
-        game->grid = copyGrid(game->prevGrid, game->row, game->column);
+        undo_place_tiles(game);
         return game;
     }
 
